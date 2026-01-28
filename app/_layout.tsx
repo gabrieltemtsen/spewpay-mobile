@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -34,36 +35,47 @@ const SpewpayLightTheme = {
   },
 };
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
+  console.log('🔐 Auth State:', { isAuthenticated, isLoading, segments });
+
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      console.log('⏳ Still loading auth...');
+      return;
+    }
 
     const inAuthGroup = segments[0] === '(auth)';
+    console.log('🧭 Navigation check:', { inAuthGroup, isAuthenticated });
 
     if (!isAuthenticated && !inAuthGroup) {
-      // Redirect to login if not authenticated
-      router.replace('/(auth)/login');
+      console.log('➡️ Redirecting to welcome');
+      router.replace('/(auth)/welcome');
     } else if (isAuthenticated && inAuthGroup) {
-      // Redirect to home if authenticated and in auth group
+      console.log('➡️ Redirecting to tabs');
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, isLoading, segments]);
 
+  // Show loading screen while checking auth
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000000' }}>
+        <ActivityIndicator size="large" color="#0066FF" />
+        <Text style={{ color: '#64748B', marginTop: 16, fontSize: 14 }}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? SpewpayDarkTheme : SpewpayLightTheme}>
-      <Stack>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
         <Stack.Screen
           name="deposit"
           options={{
@@ -80,13 +92,20 @@ function RootLayoutNav() {
             headerShown: true,
           }}
         />
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: 'modal',
+          }}
+        />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }
 
 export default function RootLayout() {
+  console.log('🚀 RootLayout rendering');
   return (
     <QueryProvider>
       <AuthProvider>

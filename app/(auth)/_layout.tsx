@@ -1,9 +1,11 @@
 import { Stack } from 'expo-router';
-import { View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 export default function AuthLayout() {
     return (
-        <View className="flex-1 bg-background-dark">
+        <View style={styles.container}>
             <Stack
                 screenOptions={{
                     headerShown: false,
@@ -18,3 +20,11 @@ export default function AuthLayout() {
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000A1A',
+        minHeight: screenHeight,
+    },
+});

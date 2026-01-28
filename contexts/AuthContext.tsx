@@ -17,6 +17,14 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Timeout wrapper for auth check to prevent hanging on iOS
+const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number): Promise<T | null> => {
+    return Promise.race([
+        promise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -30,16 +38,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuthState = async () => {
         try {
             console.log('🔍 Checking if authenticated...');
-            const isAuth = await authService.isAuthenticated();
+
+            // Add timeout to prevent hanging on iOS - max 3 seconds
+            const isAuth = await withTimeout(authService.isAuthenticated(), 3000);
             console.log('📌 isAuthenticated result:', isAuth);
 
             if (isAuth) {
                 console.log('🔓 User is authenticated, getting stored user...');
-                const storedUser = await authService.getStoredUser();
+                const storedUser = await withTimeout(authService.getStoredUser(), 2000);
                 console.log('👤 Stored user:', storedUser);
                 setUser(storedUser);
             } else {
-                console.log('🔒 User is not authenticated');
+                console.log('🔒 User is not authenticated (or timed out)');
             }
         } catch (error) {
             console.error('❌ Error checking auth state:', error);

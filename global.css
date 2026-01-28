@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS variables for dynamic theming */
+:root {
+  --color-primary: #0066FF;
+  --color-accent: #00E699;
+  --color-warning: #FF7D5C;
+  --color-background: #FFFFFF;
+  --color-surface: #F8FAFC;
+  --color-foreground: #0F172A;
+  --color-muted: #64748B;
+  --color-border: #E2E8F0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #000000;
+    --color-surface: #0A0A0B;
+    --color-foreground: #F8FAFC;
+    --color-muted: #94A3B8;
+    --color-border: #1E293B;
+  }
+}

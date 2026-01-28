@@ -5,9 +5,12 @@ import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
     StatusBar,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
@@ -16,19 +19,19 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/contexts';
-
+const { height: screenHeight } = Dimensions.get('window');
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 export default function TransferScreen() {
-    const { user } = useAuth();
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleQuickAmount = async (value: number) => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (Platform.OS !== 'web') {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
         setAmount(value.toString());
     };
 
@@ -39,12 +42,15 @@ export default function TransferScreen() {
         }
 
         setIsLoading(true);
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if (Platform.OS !== 'web') {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
 
-        // Simulate API call
         setTimeout(async () => {
             setIsLoading(false);
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            if (Platform.OS !== 'web') {
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
             Alert.alert('Success', `₦${amount} sent to ${recipient}`, [
                 { text: 'OK', onPress: () => { setRecipient(''); setAmount(''); setDescription(''); } }
             ]);
@@ -52,137 +58,243 @@ export default function TransferScreen() {
     };
 
     return (
-        <View className="flex-1 bg-background-dark">
-            <StatusBar barStyle="light-content" />
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000A1A" />
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    className="flex-1"
-                >
-                    {/* Header */}
-                    <View className="px-6 py-4">
-                        <Text className="text-foreground-dark text-2xl font-bold">
-                            Send Money
-                        </Text>
-                        <Text className="text-muted-dark text-sm mt-1">
-                            Transfer funds to another user
-                        </Text>
-                    </View>
-
-                    <View className="flex-1 px-6">
-                        {/* Recipient Input */}
-                        <Animated.View
-                            entering={FadeInDown.duration(400)}
-                            className="mb-4"
+            <LinearGradient
+                colors={['#000A1A', '#001433', '#000A1A']}
+                style={styles.gradient}
+            >
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.keyboardView}
+                    >
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.scrollContent}
+                            keyboardShouldPersistTaps="handled"
                         >
-                            <Text className="text-muted-dark text-sm mb-2 font-medium">
-                                Recipient
-                            </Text>
-                            <View className="flex-row items-center bg-surface-dark rounded-2xl px-4 border border-border-dark">
-                                <Ionicons name="person-outline" size={20} color="#64748B" />
-                                <TextInput
-                                    className="flex-1 py-4 px-3 text-foreground-dark text-base"
-                                    placeholder="Enter email or username"
-                                    placeholderTextColor="#64748B"
-                                    autoCapitalize="none"
-                                    value={recipient}
-                                    onChangeText={setRecipient}
-                                />
+                            {/* Header */}
+                            <View style={styles.header}>
+                                <Text style={styles.title}>Send Money</Text>
+                                <Text style={styles.subtitle}>
+                                    Transfer funds to another user
+                                </Text>
                             </View>
-                        </Animated.View>
 
-                        {/* Amount Input */}
-                        <Animated.View
-                            entering={FadeInDown.delay(100).duration(400)}
-                            className="mb-4"
-                        >
-                            <Text className="text-muted-dark text-sm mb-2 font-medium">
-                                Amount
-                            </Text>
-                            <View className="flex-row items-center bg-surface-dark rounded-2xl px-4 border border-border-dark">
-                                <Text className="text-muted-dark text-xl">₦</Text>
-                                <TextInput
-                                    className="flex-1 py-4 px-3 text-foreground-dark text-2xl font-bold"
-                                    placeholder="0.00"
-                                    placeholderTextColor="#64748B"
-                                    keyboardType="numeric"
-                                    value={amount}
-                                    onChangeText={setAmount}
-                                />
-                            </View>
-                        </Animated.View>
+                            {/* Recipient Input */}
+                            <Animated.View entering={FadeInDown.duration(400)}>
+                                <Text style={styles.label}>Recipient</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="person-outline" size={20} color="#64748B" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Enter email or username"
+                                        placeholderTextColor="#64748B"
+                                        autoCapitalize="none"
+                                        value={recipient}
+                                        onChangeText={setRecipient}
+                                    />
+                                </View>
+                            </Animated.View>
 
-                        {/* Quick Amounts */}
-                        <Animated.View
-                            entering={FadeInDown.delay(200).duration(400)}
-                            className="flex-row gap-3 mb-6"
-                        >
-                            {QUICK_AMOUNTS.map((value) => (
-                                <TouchableOpacity
-                                    key={value}
-                                    onPress={() => handleQuickAmount(value)}
-                                    className={`flex-1 py-3 rounded-xl items-center ${amount === value.toString()
-                                            ? 'bg-primary-500'
-                                            : 'bg-surface-dark border border-border-dark'
-                                        }`}
-                                >
-                                    <Text className={`font-semibold ${amount === value.toString() ? 'text-white' : 'text-muted-dark'
-                                        }`}>
-                                        ₦{value.toLocaleString()}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </Animated.View>
+                            {/* Amount Input */}
+                            <Animated.View entering={FadeInDown.delay(100).duration(400)}>
+                                <Text style={styles.label}>Amount</Text>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.currencySymbol}>₦</Text>
+                                    <TextInput
+                                        style={styles.amountInput}
+                                        placeholder="0.00"
+                                        placeholderTextColor="#64748B"
+                                        keyboardType="numeric"
+                                        value={amount}
+                                        onChangeText={setAmount}
+                                    />
+                                </View>
+                            </Animated.View>
 
-                        {/* Description Input */}
-                        <Animated.View
-                            entering={FadeInDown.delay(300).duration(400)}
-                            className="mb-8"
-                        >
-                            <Text className="text-muted-dark text-sm mb-2 font-medium">
-                                Note (Optional)
-                            </Text>
-                            <View className="flex-row items-center bg-surface-dark rounded-2xl px-4 border border-border-dark">
-                                <Ionicons name="chatbubble-outline" size={20} color="#64748B" />
-                                <TextInput
-                                    className="flex-1 py-4 px-3 text-foreground-dark text-base"
-                                    placeholder="What's this for?"
-                                    placeholderTextColor="#64748B"
-                                    value={description}
-                                    onChangeText={setDescription}
-                                />
-                            </View>
-                        </Animated.View>
-
-                        {/* Send Button */}
-                        <TouchableOpacity
-                            onPress={handleSend}
-                            disabled={isLoading}
-                            activeOpacity={0.8}
-                            className="overflow-hidden rounded-2xl"
-                        >
-                            <LinearGradient
-                                colors={['#0066FF', '#0052CC']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                className="py-4 flex-row items-center justify-center"
+                            {/* Quick Amounts */}
+                            <Animated.View
+                                entering={FadeInDown.delay(200).duration(400)}
+                                style={styles.quickAmounts}
                             >
-                                {isLoading ? (
-                                    <ActivityIndicator color="#fff" />
-                                ) : (
-                                    <>
-                                        <Ionicons name="send" size={20} color="#fff" />
-                                        <Text className="text-white text-base font-semibold ml-2">
-                                            Send Money
+                                {QUICK_AMOUNTS.map((value) => (
+                                    <TouchableOpacity
+                                        key={value}
+                                        onPress={() => handleQuickAmount(value)}
+                                        style={[
+                                            styles.quickAmountBtn,
+                                            amount === value.toString() && styles.quickAmountBtnActive,
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.quickAmountText,
+                                                amount === value.toString() && styles.quickAmountTextActive,
+                                            ]}
+                                        >
+                                            ₦{value.toLocaleString()}
                                         </Text>
-                                    </>
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                </KeyboardAvoidingView>
-            </SafeAreaView>
+                                    </TouchableOpacity>
+                                ))}
+                            </Animated.View>
+
+                            {/* Description Input */}
+                            <Animated.View entering={FadeInDown.delay(300).duration(400)}>
+                                <Text style={styles.label}>Note (Optional)</Text>
+                                <View style={styles.inputContainer}>
+                                    <Ionicons name="chatbubble-outline" size={20} color="#64748B" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="What's this for?"
+                                        placeholderTextColor="#64748B"
+                                        value={description}
+                                        onChangeText={setDescription}
+                                    />
+                                </View>
+                            </Animated.View>
+
+                            {/* Send Button */}
+                            <TouchableOpacity
+                                onPress={handleSend}
+                                disabled={isLoading}
+                                activeOpacity={0.8}
+                                style={styles.buttonWrapper}
+                            >
+                                <LinearGradient
+                                    colors={['#0066FF', '#0052CC']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.sendButton}
+                                >
+                                    {isLoading ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="send" size={20} color="#fff" />
+                                            <Text style={styles.sendButtonText}>Send Money</Text>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </SafeAreaView>
+            </LinearGradient>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000A1A',
+        minHeight: screenHeight,
+    },
+    gradient: {
+        flex: 1,
+        minHeight: screenHeight,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    keyboardView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 120,
+    },
+    header: {
+        paddingVertical: 20,
+    },
+    title: {
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '700',
+    },
+    subtitle: {
+        color: '#94A3B8',
+        fontSize: 14,
+        marginTop: 4,
+    },
+    label: {
+        color: '#94A3B8',
+        fontSize: 14,
+        fontWeight: '500',
+        marginBottom: 8,
+        marginTop: 16,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    input: {
+        flex: 1,
+        paddingVertical: 16,
+        paddingHorizontal: 12,
+        color: '#FFFFFF',
+        fontSize: 16,
+    },
+    currencySymbol: {
+        color: '#64748B',
+        fontSize: 24,
+    },
+    amountInput: {
+        flex: 1,
+        paddingVertical: 16,
+        paddingHorizontal: 12,
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '700',
+    },
+    quickAmounts: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 16,
+    },
+    quickAmountBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    quickAmountBtnActive: {
+        backgroundColor: '#0066FF',
+        borderColor: '#0066FF',
+    },
+    quickAmountText: {
+        color: '#94A3B8',
+        fontWeight: '600',
+    },
+    quickAmountTextActive: {
+        color: '#FFFFFF',
+    },
+    buttonWrapper: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginTop: 32,
+    },
+    sendButton: {
+        paddingVertical: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    sendButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+});

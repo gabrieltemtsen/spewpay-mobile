@@ -1,10 +1,21 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import {
+    Dimensions,
+    FlatList,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { TransactionList } from '@/components/transactions';
 import type { Transaction } from '@/types';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 // Mock data
 const mockTransactions: Transaction[] = [
@@ -57,6 +68,35 @@ const mockTransactions: Transaction[] = [
 
 type FilterType = 'all' | 'deposit' | 'withdrawal' | 'transfer';
 
+const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 0,
+    }).format(amount);
+};
+
+const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-NG', {
+        month: 'short',
+        day: 'numeric',
+    });
+};
+
+const getTransactionIcon = (type: string) => {
+    switch (type) {
+        case 'DEPOSIT':
+            return { name: 'arrow-down', color: '#00E699' };
+        case 'WITHDRAWAL':
+            return { name: 'arrow-up', color: '#F59E0B' };
+        case 'TRANSFER':
+            return { name: 'swap-horizontal', color: '#0066FF' };
+        default:
+            return { name: 'cash', color: '#64748B' };
+    }
+};
+
 export default function HistoryScreen() {
     const [filter, setFilter] = useState<FilterType>('all');
 
@@ -72,34 +112,74 @@ export default function HistoryScreen() {
         { key: 'transfer', label: 'Transfers' },
     ];
 
+    const renderTransactionItem = ({ item: transaction, index }: { item: Transaction; index: number }) => {
+        const icon = getTransactionIcon(transaction.type);
+        return (
+            <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
+                <View style={styles.transactionItem}>
+                    <View style={[styles.transactionIcon, { backgroundColor: `${icon.color}20` }]}>
+                        <Ionicons name={icon.name as any} size={20} color={icon.color} />
+                    </View>
+                    <View style={styles.transactionInfo}>
+                        <Text style={styles.transactionType}>
+                            {transaction.type.charAt(0) + transaction.type.slice(1).toLowerCase()}
+                        </Text>
+                        <Text style={styles.transactionDate}>
+                            {formatDate(transaction.createdAt)}
+                            {transaction.description && ` • ${transaction.description}`}
+                        </Text>
+                    </View>
+                    <View style={styles.transactionAmount}>
+                        <Text
+                            style={[
+                                styles.amount,
+                                transaction.type === 'DEPOSIT'
+                                    ? styles.amountPositive
+                                    : styles.amountNegative,
+                            ]}
+                        >
+                            {transaction.type === 'DEPOSIT' ? '+' : '-'}
+                            {formatCurrency(transaction.amount.naira)}
+                        </Text>
+                        <Text
+                            style={[
+                                styles.transactionStatus,
+                                transaction.status === 'COMPLETED'
+                                    ? styles.statusCompleted
+                                    : styles.statusProcessing,
+                            ]}
+                        >
+                            {transaction.status}
+                        </Text>
+                    </View>
+                </View>
+            </Animated.View>
+        );
+    };
+
     const ListHeader = () => (
-        <View className="px-4 pb-4">
-            {/* Header */}
-            <View className="py-4">
-                <Text className="text-foreground-dark text-2xl font-bold">
-                    Transaction History
-                </Text>
-                <Text className="text-muted-dark text-sm mt-1">
-                    View all your transactions
-                </Text>
+        <View style={styles.headerContainer}>
+            <View style={styles.header}>
+                <Text style={styles.title}>Transaction History</Text>
+                <Text style={styles.subtitle}>View all your transactions</Text>
             </View>
 
-            {/* Filters */}
-            <Animated.View
-                entering={FadeInDown.duration(400)}
-                className="flex-row gap-2"
-            >
+            <Animated.View entering={FadeInDown.duration(400)} style={styles.filters}>
                 {filters.map((f) => (
                     <TouchableOpacity
                         key={f.key}
                         onPress={() => setFilter(f.key)}
-                        className={`px-4 py-2 rounded-full ${filter === f.key
-                                ? 'bg-primary-500'
-                                : 'bg-surface-dark border border-border-dark'
-                            }`}
+                        style={[
+                            styles.filterBtn,
+                            filter === f.key && styles.filterBtnActive,
+                        ]}
                     >
-                        <Text className={`text-sm font-medium ${filter === f.key ? 'text-white' : 'text-muted-dark'
-                            }`}>
+                        <Text
+                            style={[
+                                styles.filterText,
+                                filter === f.key && styles.filterTextActive,
+                            ]}
+                        >
                             {f.label}
                         </Text>
                     </TouchableOpacity>
@@ -109,16 +189,140 @@ export default function HistoryScreen() {
     );
 
     return (
-        <View className="flex-1 bg-background-dark">
-            <StatusBar barStyle="light-content" />
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000A1A" />
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                <TransactionList
-                    transactions={filteredTransactions}
-                    ListHeaderComponent={<ListHeader />}
-                    onTransactionPress={(t) => console.log('View transaction', t.id)}
-                />
-            </SafeAreaView>
+            <LinearGradient
+                colors={['#000A1A', '#001433', '#000A1A']}
+                style={styles.gradient}
+            >
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
+                    <FlatList
+                        data={filteredTransactions}
+                        renderItem={renderTransactionItem}
+                        keyExtractor={(item) => item.id}
+                        ListHeaderComponent={<ListHeader />}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
+                        ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    />
+                </SafeAreaView>
+            </LinearGradient>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000A1A',
+        minHeight: screenHeight,
+    },
+    gradient: {
+        flex: 1,
+        minHeight: screenHeight,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    listContent: {
+        paddingBottom: 120,
+    },
+    headerContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    header: {
+        paddingVertical: 20,
+    },
+    title: {
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '700',
+    },
+    subtitle: {
+        color: '#94A3B8',
+        fontSize: 14,
+        marginTop: 4,
+    },
+    filters: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    filterBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    filterBtnActive: {
+        backgroundColor: '#0066FF',
+        borderColor: '#0066FF',
+    },
+    filterText: {
+        color: '#94A3B8',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    filterTextActive: {
+        color: '#FFFFFF',
+    },
+    transactionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    transactionIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    transactionInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    transactionType: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    transactionDate: {
+        color: '#64748B',
+        fontSize: 13,
+        marginTop: 2,
+    },
+    transactionAmount: {
+        alignItems: 'flex-end',
+    },
+    amount: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    amountPositive: {
+        color: '#00E699',
+    },
+    amountNegative: {
+        color: '#FFFFFF',
+    },
+    transactionStatus: {
+        fontSize: 11,
+        marginTop: 2,
+        textTransform: 'capitalize',
+    },
+    statusCompleted: {
+        color: '#00E699',
+    },
+    statusProcessing: {
+        color: '#F59E0B',
+    },
+    separator: {
+        height: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        marginHorizontal: 20,
+    },
+});

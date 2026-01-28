@@ -6,7 +6,11 @@ import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
+    Platform,
     ScrollView,
+    StatusBar,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
@@ -14,6 +18,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+const { height: screenHeight } = Dimensions.get('window');
 const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 20000];
 
 export default function DepositScreen() {
@@ -22,7 +27,9 @@ export default function DepositScreen() {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleQuickAmount = async (value: number) => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (Platform.OS !== 'web') {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
         setAmount(value.toString());
     };
 
@@ -34,13 +41,15 @@ export default function DepositScreen() {
         }
 
         setIsLoading(true);
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if (Platform.OS !== 'web') {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
 
-        // In production, this would call paymentService.initializeDeposit()
-        // and redirect to Paystack WebView
         setTimeout(async () => {
             setIsLoading(false);
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            if (Platform.OS !== 'web') {
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
             Alert.alert(
                 'Payment Initiated',
                 'You would be redirected to Paystack to complete payment.',
@@ -50,99 +59,216 @@ export default function DepositScreen() {
     };
 
     return (
-        <ScrollView
-            className="flex-1 bg-background-dark"
-            contentContainerStyle={{ padding: 24 }}
-            showsVerticalScrollIndicator={false}
-        >
-            {/* Amount Display */}
-            <Animated.View
-                entering={FadeInDown.duration(400)}
-                className="items-center py-8"
-            >
-                <Text className="text-muted-dark text-sm mb-2">Enter Amount</Text>
-                <View className="flex-row items-baseline">
-                    <Text className="text-muted-dark text-3xl font-medium mr-2">₦</Text>
-                    <TextInput
-                        className="text-foreground-dark text-5xl font-bold text-center"
-                        placeholder="0"
-                        placeholderTextColor="#64748B"
-                        keyboardType="numeric"
-                        value={amount}
-                        onChangeText={setAmount}
-                        style={{ minWidth: 100 }}
-                    />
-                </View>
-            </Animated.View>
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000A1A" />
 
-            {/* Quick Amounts */}
-            <Animated.View
-                entering={FadeInDown.delay(100).duration(400)}
-                className="mb-8"
+            <LinearGradient
+                colors={['#000A1A', '#001433', '#000A1A']}
+                style={styles.gradient}
             >
-                <Text className="text-muted-dark text-sm mb-3">Quick Select</Text>
-                <View className="flex-row flex-wrap gap-2">
-                    {QUICK_AMOUNTS.map((value) => (
-                        <TouchableOpacity
-                            key={value}
-                            onPress={() => handleQuickAmount(value)}
-                            className={`px-4 py-3 rounded-xl ${amount === value.toString()
-                                    ? 'bg-primary-500'
-                                    : 'bg-surface-dark border border-border-dark'
-                                }`}
-                        >
-                            <Text className={`font-semibold ${amount === value.toString() ? 'text-white' : 'text-muted-dark'
-                                }`}>
-                                ₦{value.toLocaleString()}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </Animated.View>
-
-            {/* Payment Info */}
-            <Animated.View
-                entering={FadeInDown.delay(200).duration(400)}
-                className="bg-card-dark rounded-2xl p-4 mb-8"
-            >
-                <View className="flex-row items-center mb-3">
-                    <View className="w-8 h-8 rounded-lg bg-accent-500/10 items-center justify-center">
-                        <Ionicons name="shield-checkmark" size={16} color="#00E699" />
-                    </View>
-                    <Text className="text-foreground-dark font-medium ml-2">
-                        Secure Payment via Paystack
-                    </Text>
-                </View>
-                <Text className="text-muted-dark text-sm">
-                    Your payment is processed securely through Paystack. We accept cards, bank transfers, and USSD.
-                </Text>
-            </Animated.View>
-
-            {/* Submit Button */}
-            <TouchableOpacity
-                onPress={handleDeposit}
-                disabled={isLoading || !amount}
-                activeOpacity={0.8}
-                className="overflow-hidden rounded-2xl"
-            >
-                <LinearGradient
-                    colors={amount ? ['#00E699', '#00B377'] : ['#1E293B', '#1E293B']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    className="py-4 flex-row items-center justify-center"
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
                 >
-                    {isLoading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <>
-                            <Ionicons name="add-circle" size={20} color="#fff" />
-                            <Text className="text-white text-base font-semibold ml-2">
-                                Add Money
-                            </Text>
-                        </>
-                    )}
-                </LinearGradient>
-            </TouchableOpacity>
-        </ScrollView>
+                    {/* Amount Display */}
+                    <Animated.View entering={FadeInDown.duration(400)} style={styles.amountSection}>
+                        <Text style={styles.amountLabel}>Enter Amount</Text>
+                        <View style={styles.amountRow}>
+                            <Text style={styles.currencySymbol}>₦</Text>
+                            <TextInput
+                                style={styles.amountInput}
+                                placeholder="0"
+                                placeholderTextColor="#64748B"
+                                keyboardType="numeric"
+                                value={amount}
+                                onChangeText={setAmount}
+                            />
+                        </View>
+                    </Animated.View>
+
+                    {/* Quick Amounts */}
+                    <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.quickSection}>
+                        <Text style={styles.sectionLabel}>Quick Select</Text>
+                        <View style={styles.quickAmounts}>
+                            {QUICK_AMOUNTS.map((value) => (
+                                <TouchableOpacity
+                                    key={value}
+                                    onPress={() => handleQuickAmount(value)}
+                                    style={[
+                                        styles.quickBtn,
+                                        amount === value.toString() && styles.quickBtnActive,
+                                    ]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.quickBtnText,
+                                            amount === value.toString() && styles.quickBtnTextActive,
+                                        ]}
+                                    >
+                                        ₦{value.toLocaleString()}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </Animated.View>
+
+                    {/* Payment Info */}
+                    <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.infoCard}>
+                        <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                                <Ionicons name="shield-checkmark" size={16} color="#00E699" />
+                            </View>
+                            <Text style={styles.infoTitle}>Secure Payment via Paystack</Text>
+                        </View>
+                        <Text style={styles.infoText}>
+                            Your payment is processed securely through Paystack. We accept cards, bank transfers, and USSD.
+                        </Text>
+                    </Animated.View>
+
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                        onPress={handleDeposit}
+                        disabled={isLoading || !amount}
+                        activeOpacity={0.8}
+                        style={styles.buttonWrapper}
+                    >
+                        <LinearGradient
+                            colors={amount ? ['#00E699', '#00B377'] : ['#1E293B', '#1E293B']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.submitButton}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <>
+                                    <Ionicons name="add-circle" size={20} color="#fff" />
+                                    <Text style={styles.submitButtonText}>Add Money</Text>
+                                </>
+                            )}
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </ScrollView>
+            </LinearGradient>
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000A1A',
+        minHeight: screenHeight,
+    },
+    gradient: {
+        flex: 1,
+        minHeight: screenHeight,
+    },
+    scrollContent: {
+        padding: 24,
+        paddingBottom: 48,
+    },
+    amountSection: {
+        alignItems: 'center',
+        paddingVertical: 32,
+    },
+    amountLabel: {
+        color: '#94A3B8',
+        fontSize: 14,
+        marginBottom: 8,
+    },
+    amountRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+    },
+    currencySymbol: {
+        color: '#64748B',
+        fontSize: 32,
+        fontWeight: '500',
+        marginRight: 8,
+    },
+    amountInput: {
+        color: '#FFFFFF',
+        fontSize: 48,
+        fontWeight: '700',
+        textAlign: 'center',
+        minWidth: 100,
+    },
+    quickSection: {
+        marginBottom: 32,
+    },
+    sectionLabel: {
+        color: '#94A3B8',
+        fontSize: 14,
+        marginBottom: 12,
+    },
+    quickAmounts: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    quickBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    quickBtnActive: {
+        backgroundColor: '#0066FF',
+        borderColor: '#0066FF',
+    },
+    quickBtnText: {
+        color: '#94A3B8',
+        fontWeight: '600',
+    },
+    quickBtnTextActive: {
+        color: '#FFFFFF',
+    },
+    infoCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 32,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    infoIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: 'rgba(0, 230, 153, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    infoTitle: {
+        color: '#FFFFFF',
+        fontWeight: '500',
+        marginLeft: 8,
+    },
+    infoText: {
+        color: '#94A3B8',
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    buttonWrapper: {
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    submitButton: {
+        paddingVertical: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    submitButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+});

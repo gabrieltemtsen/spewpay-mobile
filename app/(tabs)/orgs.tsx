@@ -2,11 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import {
+    Dimensions,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Organization, OrgType } from '@/types';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 // Mock data
 const mockOrgs: Organization[] = [
@@ -28,8 +39,8 @@ const mockOrgs: Organization[] = [
     },
 ];
 
-const getOrgIcon = (type: OrgType) => {
-    const icons: Record<OrgType, string> = {
+const getOrgIcon = (type: OrgType): keyof typeof Ionicons.glyphMap => {
+    const icons: Record<OrgType, keyof typeof Ionicons.glyphMap> = {
         COMPANY: 'business',
         UNIVERSITY: 'school',
         FAMILY: 'home',
@@ -39,8 +50,8 @@ const getOrgIcon = (type: OrgType) => {
     return icons[type] || 'business';
 };
 
-const getOrgColor = (type: OrgType) => {
-    const colors: Record<OrgType, string[]> = {
+const getOrgColor = (type: OrgType): [string, string] => {
+    const colors: Record<OrgType, [string, string]> = {
         COMPANY: ['#0066FF', '#0052CC'],
         UNIVERSITY: ['#8B5CF6', '#7C3AED'],
         FAMILY: ['#00E699', '#00B377'],
@@ -50,122 +61,263 @@ const getOrgColor = (type: OrgType) => {
     return colors[type] || colors.COMPANY;
 };
 
-function OrgCard({ org }: { org: Organization }) {
+function OrgCard({ org, index }: { org: Organization; index: number }) {
     const handlePress = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (Platform.OS !== 'web') {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
     };
 
     return (
-        <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-            <LinearGradient
-                colors={getOrgColor(org.type) as [string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="p-5 rounded-3xl mb-4"
-            >
-                <View className="flex-row items-center mb-4">
-                    <View className="w-12 h-12 rounded-2xl bg-white/20 items-center justify-center">
-                        <Ionicons name={getOrgIcon(org.type) as any} size={24} color="#fff" />
+        <Animated.View entering={FadeInDown.delay(index * 100).duration(400)}>
+            <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
+                <LinearGradient
+                    colors={getOrgColor(org.type)}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.orgCard}
+                >
+                    <View style={styles.orgHeader}>
+                        <View style={styles.orgIconWrapper}>
+                            <Ionicons name={getOrgIcon(org.type)} size={24} color="#fff" />
+                        </View>
+                        <View style={styles.orgInfo}>
+                            <Text style={styles.orgName}>{org.name}</Text>
+                            <Text style={styles.orgType}>
+                                {org.type.charAt(0) + org.type.slice(1).toLowerCase()}
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
                     </View>
-                    <View className="ml-3 flex-1">
-                        <Text className="text-white font-bold text-lg">{org.name}</Text>
-                        <Text className="text-white/70 text-sm">
-                            {org.type.charAt(0) + org.type.slice(1).toLowerCase()}
-                        </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
-                </View>
 
-                <View className="flex-row items-end justify-between">
-                    <View>
-                        <Text className="text-white/70 text-sm">Balance</Text>
-                        <Text className="text-white text-2xl font-bold">
-                            ₦{org.balance?.naira.toLocaleString()}
-                        </Text>
+                    <View style={styles.orgBalanceRow}>
+                        <View>
+                            <Text style={styles.balanceLabel}>Balance</Text>
+                            <Text style={styles.balanceValue}>
+                                ₦{org.balance?.naira.toLocaleString()}
+                            </Text>
+                        </View>
                     </View>
-                </View>
-            </LinearGradient>
-        </TouchableOpacity>
+                </LinearGradient>
+            </TouchableOpacity>
+        </Animated.View>
     );
 }
 
 export default function OrgsScreen() {
+    const handleAddOrg = async () => {
+        if (Platform.OS !== 'web') {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+    };
+
     return (
-        <View className="flex-1 bg-background-dark">
-            <StatusBar barStyle="light-content" />
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000A1A" />
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 120 }}
-                >
-                    {/* Header */}
-                    <View className="px-6 py-4 flex-row justify-between items-center">
-                        <View>
-                            <Text className="text-foreground-dark text-2xl font-bold">
-                                Organizations
-                            </Text>
-                            <Text className="text-muted-dark text-sm mt-1">
-                                Manage your groups and budgets
-                            </Text>
-                        </View>
-
-                        <TouchableOpacity
-                            className="w-10 h-10 rounded-full bg-primary-500 items-center justify-center"
-                            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-                        >
-                            <Ionicons name="add" size={24} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Org Cards */}
-                    <View className="px-4">
-                        {mockOrgs.map((org, index) => (
-                            <Animated.View
-                                key={org.id}
-                                entering={FadeInDown.delay(index * 100).duration(400)}
-                            >
-                                <OrgCard org={org} />
-                            </Animated.View>
-                        ))}
-                    </View>
-
-                    {/* Empty state if no orgs */}
-                    {mockOrgs.length === 0 && (
-                        <View className="items-center py-16">
-                            <View className="w-20 h-20 rounded-3xl bg-surface-dark items-center justify-center mb-4">
-                                <Ionicons name="business-outline" size={36} color="#64748B" />
-                            </View>
-                            <Text className="text-foreground-dark text-lg font-semibold">
-                                No Organizations
-                            </Text>
-                            <Text className="text-muted-dark text-sm mt-2 text-center px-8">
-                                Create an organization to manage shared budgets and allocations.
-                            </Text>
-                        </View>
-                    )}
-
-                    {/* Pending Invites Section */}
-                    <Animated.View
-                        entering={FadeInDown.delay(300).duration(400)}
-                        className="mt-6 px-4"
+            <LinearGradient
+                colors={['#000A1A', '#001433', '#000A1A']}
+                style={styles.gradient}
+            >
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollContent}
                     >
-                        <Text className="text-foreground-dark text-lg font-semibold mb-4">
-                            Pending Invites
-                        </Text>
-                        <View className="bg-card-dark rounded-2xl p-4 border border-border-dark">
-                            <View className="flex-row items-center">
-                                <View className="w-10 h-10 rounded-full bg-warning-500/10 items-center justify-center">
-                                    <Ionicons name="mail-outline" size={20} color="#FF7D5C" />
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <View>
+                                <Text style={styles.title}>Organizations</Text>
+                                <Text style={styles.subtitle}>Manage your groups and budgets</Text>
+                            </View>
+                            <TouchableOpacity style={styles.addBtn} onPress={handleAddOrg}>
+                                <Ionicons name="add" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Org Cards */}
+                        <View style={styles.cardsContainer}>
+                            {mockOrgs.map((org, index) => (
+                                <OrgCard key={org.id} org={org} index={index} />
+                            ))}
+                        </View>
+
+                        {/* Empty state */}
+                        {mockOrgs.length === 0 && (
+                            <View style={styles.emptyState}>
+                                <View style={styles.emptyIcon}>
+                                    <Ionicons name="business-outline" size={36} color="#64748B" />
                                 </View>
-                                <Text className="text-muted-dark ml-3">
-                                    No pending invites
+                                <Text style={styles.emptyTitle}>No Organizations</Text>
+                                <Text style={styles.emptySubtitle}>
+                                    Create an organization to manage shared budgets and allocations.
                                 </Text>
                             </View>
-                        </View>
-                    </Animated.View>
-                </ScrollView>
-            </SafeAreaView>
+                        )}
+
+                        {/* Pending Invites */}
+                        <Animated.View
+                            entering={FadeInDown.delay(300).duration(400)}
+                            style={styles.invitesSection}
+                        >
+                            <Text style={styles.sectionTitle}>Pending Invites</Text>
+                            <View style={styles.inviteCard}>
+                                <View style={styles.inviteIcon}>
+                                    <Ionicons name="mail-outline" size={20} color="#FF7D5C" />
+                                </View>
+                                <Text style={styles.inviteText}>No pending invites</Text>
+                            </View>
+                        </Animated.View>
+                    </ScrollView>
+                </SafeAreaView>
+            </LinearGradient>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000A1A',
+        minHeight: screenHeight,
+    },
+    gradient: {
+        flex: 1,
+        minHeight: screenHeight,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 120,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+    },
+    title: {
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '700',
+    },
+    subtitle: {
+        color: '#94A3B8',
+        fontSize: 14,
+        marginTop: 4,
+    },
+    addBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#0066FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cardsContainer: {
+        paddingHorizontal: 16,
+    },
+    orgCard: {
+        padding: 20,
+        borderRadius: 24,
+        marginBottom: 16,
+    },
+    orgHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    orgIconWrapper: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    orgInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    orgName: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    orgType: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 14,
+    },
+    orgBalanceRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+    },
+    balanceLabel: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 14,
+    },
+    balanceValue: {
+        color: '#FFFFFF',
+        fontSize: 24,
+        fontWeight: '700',
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 48,
+    },
+    emptyIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '600',
+    },
+    emptySubtitle: {
+        color: '#64748B',
+        fontSize: 14,
+        textAlign: 'center',
+        marginTop: 8,
+        paddingHorizontal: 32,
+    },
+    invitesSection: {
+        marginTop: 24,
+        paddingHorizontal: 16,
+    },
+    sectionTitle: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 16,
+    },
+    inviteCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    inviteIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 125, 92, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    inviteText: {
+        color: '#94A3B8',
+        marginLeft: 12,
+    },
+});

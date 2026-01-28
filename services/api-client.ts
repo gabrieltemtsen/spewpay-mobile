@@ -2,10 +2,11 @@ import { ApiError } from '@/types';
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// Constants
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+// Production API URL
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.spewpay.com/api/v1';
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const USER_KEY = 'user_data';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -45,6 +46,20 @@ export const TokenStorage = {
     async clearTokens(): Promise<void> {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+        await SecureStore.deleteItemAsync(USER_KEY);
+    },
+
+    async setUser(user: object): Promise<void> {
+        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+    },
+
+    async getUser(): Promise<object | null> {
+        try {
+            const userStr = await SecureStore.getItemAsync(USER_KEY);
+            return userStr ? JSON.parse(userStr) : null;
+        } catch {
+            return null;
+        }
     },
 };
 
@@ -81,10 +96,10 @@ apiClient.interceptors.response.use(
             console.error(`❌ ${error.config?.url}`, error.response?.data || error.message);
         }
 
-        // Handle 401 - could implement token refresh here
+        // Handle 401 - clear tokens and redirect to login
         if (error.response?.status === 401) {
             await TokenStorage.clearTokens();
-            // Could emit an event here for the auth context to handle
+            // Auth context will handle the redirect
         }
 
         // Normalize error

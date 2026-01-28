@@ -54,8 +54,9 @@ export interface LedgerEntry {
 export interface User {
     id: string;
     email: string;
-    firstName: string;
-    lastName: string;
+    displayName: string;  // API uses displayName
+    firstName?: string;   // Parsed from displayName for convenience
+    lastName?: string;
     phone?: string;
     avatar?: string;
     createdAt: string;
@@ -71,9 +72,7 @@ export interface LoginRequest {
 export interface SignupRequest {
     email: string;
     password: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
+    displayName: string;  // API uses displayName
 }
 
 export interface AuthResponse {
@@ -102,6 +101,9 @@ export interface InitializeDepositResponse {
         amount: MoneyAmount;
     };
 }
+
+// Alias for service compatibility
+export type DepositInitResponse = InitializeDepositResponse;
 
 export interface VerifyDepositResponse {
     success: true;
@@ -168,6 +170,9 @@ export interface WithdrawalResponse {
         amount: MoneyAmount;
     };
 }
+
+// Alias for service compatibility
+export type WithdrawalResult = WithdrawalResponse;
 
 // ============ Transfer Types ============
 
@@ -255,6 +260,9 @@ export interface AllocationRule {
     description?: string;
     enabled: boolean;
 }
+
+// Alias for service compatibility
+export type SpendingRule = AllocationRule;
 
 export interface CreateAllocationRequest {
     name: string;

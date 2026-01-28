@@ -21,11 +21,10 @@ import * as z from 'zod';
 
 import { useAuth } from '@/contexts';
 
+// Updated schema to match API: displayName instead of firstName/lastName
 const signupSchema = z.object({
-    firstName: z.string().min(2, 'First name is required'),
-    lastName: z.string().min(2, 'Last name is required'),
+    displayName: z.string().min(2, 'Display name is required'),
     email: z.string().email('Please enter a valid email'),
-    phone: z.string().min(10, 'Please enter a valid phone number').optional(),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -50,17 +49,15 @@ export default function SignupScreen() {
     } = useForm<SignupForm>({
         resolver: zodResolver(signupSchema),
         defaultValues: {
-            firstName: '',
-            lastName: '',
+            displayName: '',
             email: '',
-            phone: '',
             password: '',
             confirmPassword: '',
         },
     });
 
     const handleNextStep = async () => {
-        const isValid = await trigger(['firstName', 'lastName', 'email']);
+        const isValid = await trigger(['displayName', 'email']);
         if (isValid) {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setStep(2);
@@ -73,9 +70,7 @@ export default function SignupScreen() {
             await signup({
                 email: data.email,
                 password: data.password,
-                firstName: data.firstName,
-                lastName: data.lastName,
-                phone: data.phone,
+                displayName: data.displayName,
             });
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             router.replace('/(tabs)');
@@ -184,14 +179,9 @@ export default function SignupScreen() {
                                 {step === 1 ? (
                                     /* Step 1: Personal Info */
                                     <>
-                                        {renderInput('firstName', 'First Name', 'person-outline')}
-                                        {renderInput('lastName', 'Last Name', 'person-outline')}
+                                        {renderInput('displayName', 'Full Name', 'person-outline')}
                                         {renderInput('email', 'Email Address', 'mail-outline', {
                                             keyboardType: 'email-address',
-                                            autoCapitalize: 'none',
-                                        })}
-                                        {renderInput('phone', 'Phone Number (Optional)', 'call-outline', {
-                                            keyboardType: 'phone-pad',
                                             autoCapitalize: 'none',
                                         })}
 

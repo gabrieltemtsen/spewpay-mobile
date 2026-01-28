@@ -1,196 +1,320 @@
 import type {
-    AddRuleRequest,
     Allocation,
-    AllocationRule,
-    CreateAllocationRequest,
-    CreateOrgRequest,
-    FundAllocationRequest,
-    InviteMemberRequest,
     Organization,
     OrgInvite,
     OrgMember,
+    OrgRole,
+    OrgType,
+    SpendingRule
 } from '@/types';
 import apiClient from './api-client';
 
 export const orgService = {
-    // ============ Organization Operations ============
+    // ============ ORGANIZATIONS ============
 
     /**
      * Create a new organization
+     * POST /orgs?userId=xxx
      */
-    async createOrg(data: CreateOrgRequest, userId: string): Promise<Organization> {
-        const response = await apiClient.post<{ success: true; data: Organization }>(
-            '/orgs',
-            data,
-            { params: { userId } }
-        );
-        return response.data.data;
+    async createOrg(
+        userId: string,
+        data: { name: string; type: OrgType; metadata?: object }
+    ): Promise<Organization> {
+        const response = await apiClient.post<Organization>('/orgs', data, {
+            params: { userId },
+        });
+        return response.data;
     },
 
     /**
-     * Get organizations the user belongs to
+     * Get organizations for current user
+     * GET /orgs/my?userId=xxx
      */
     async getMyOrgs(userId: string): Promise<Organization[]> {
-        const response = await apiClient.get<{ success: true; data: Organization[] }>(
-            '/orgs/my',
-            { params: { userId } }
-        );
-        return response.data.data;
+        const response = await apiClient.get<Organization[]>('/orgs/my', {
+            params: { userId },
+        });
+        return response.data;
     },
 
     /**
      * Get organization details
+     * GET /orgs/{orgId}
      */
     async getOrg(orgId: string): Promise<Organization> {
-        const response = await apiClient.get<{ success: true; data: Organization }>(`/orgs/${orgId}`);
-        return response.data.data;
-    },
-
-    // ============ Member Operations ============
-
-    /**
-     * Get organization members
-     */
-    async getMembers(orgId: string): Promise<OrgMember[]> {
-        const response = await apiClient.get<{ success: true; data: OrgMember[] }>(
-            `/orgs/${orgId}/members`
-        );
-        return response.data.data;
+        const response = await apiClient.get<Organization>(`/orgs/${orgId}`);
+        return response.data;
     },
 
     /**
-     * Invite a member to organization
+     * Update organization
+     * PATCH /orgs/{orgId}?userId=xxx
      */
-    async inviteMember(
+    async updateOrg(
         orgId: string,
-        data: InviteMemberRequest,
-        inviterId: string
-    ): Promise<OrgInvite> {
-        const response = await apiClient.post<{ success: true; data: OrgInvite }>(
-            `/orgs/${orgId}/invites`,
-            data,
-            { params: { userId: inviterId } }
-        );
-        return response.data.data;
+        userId: string,
+        data: { name?: string; metadata?: object }
+    ): Promise<Organization> {
+        const response = await apiClient.patch<Organization>(`/orgs/${orgId}`, data, {
+            params: { userId },
+        });
+        return response.data;
     },
 
+    // ============ INVITES ============
+
     /**
-     * Get pending invites for user
+     * Create invitation to join org
+     * POST /orgs/{orgId}/invites?userId=xxx
      */
-    async getMyInvites(userId: string, email: string): Promise<OrgInvite[]> {
-        const response = await apiClient.get<{ success: true; data: OrgInvite[] }>(
-            '/orgs/invites/my',
-            { params: { userId, email } }
-        );
-        return response.data.data;
+    async createInvite(
+        orgId: string,
+        userId: string,
+        data: { email?: string; phone?: string; userId?: string; role: OrgRole; message?: string }
+    ): Promise<OrgInvite> {
+        const response = await apiClient.post<OrgInvite>(`/orgs/${orgId}/invites`, data, {
+            params: { userId },
+        });
+        return response.data;
     },
 
     /**
-     * Accept an invite
+     * Get pending invites for org
+     * GET /orgs/{orgId}/invites?userId=xxx
+     */
+    async getOrgInvites(orgId: string, userId: string): Promise<OrgInvite[]> {
+        const response = await apiClient.get<OrgInvite[]>(`/orgs/${orgId}/invites`, {
+            params: { userId },
+        });
+        return response.data;
+    },
+
+    /**
+     * Get invites for current user
+     * GET /orgs/invites/my?userId=xxx
+     */
+    async getMyInvites(userId: string, email?: string): Promise<OrgInvite[]> {
+        const response = await apiClient.get<OrgInvite[]>('/orgs/invites/my', {
+            params: { userId, email },
+        });
+        return response.data;
+    },
+
+    /**
+     * Accept an invitation
+     * POST /orgs/invites/{inviteId}/accept
      */
     async acceptInvite(inviteId: string, userId: string): Promise<void> {
-        await apiClient.post(`/invites/${inviteId}/accept`, { userId });
+        await apiClient.post(`/orgs/invites/${inviteId}/accept`, { userId });
     },
 
-    // ============ Allocation Operations ============
+    /**
+     * Decline an invitation
+     * POST /orgs/invites/{inviteId}/decline?userId=xxx
+     */
+    async declineInvite(inviteId: string, userId: string): Promise<void> {
+        await apiClient.post(`/orgs/invites/${inviteId}/decline`, null, {
+            params: { userId },
+        });
+    },
+
+    // ============ MEMBERS ============
 
     /**
-     * Create an allocation
+     * Get org members
+     * GET /orgs/{orgId}/members
      */
-    async createAllocation(
+    async getMembers(orgId: string): Promise<OrgMember[]> {
+        const response = await apiClient.get<OrgMember[]>(`/orgs/${orgId}/members`);
+        return response.data;
+    },
+
+    /**
+     * Update member role
+     * PATCH /orgs/{orgId}/members/{memberId}?userId=xxx
+     */
+    async updateMember(
         orgId: string,
-        data: CreateAllocationRequest,
-        userId: string
-    ): Promise<Allocation> {
-        const response = await apiClient.post<{ success: true; data: Allocation }>(
-            `/orgs/${orgId}/allocations`,
+        memberId: string,
+        userId: string,
+        data: { role: OrgRole }
+    ): Promise<OrgMember> {
+        const response = await apiClient.patch<OrgMember>(
+            `/orgs/${orgId}/members/${memberId}`,
             data,
             { params: { userId } }
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
-     * Get allocations for an org
+     * Remove member from org
+     * DELETE /orgs/{orgId}/members/{memberId}?userId=xxx
      */
-    async getAllocations(orgId: string): Promise<Allocation[]> {
-        const response = await apiClient.get<{ success: true; data: Allocation[] }>(
-            `/orgs/${orgId}/allocations`
-        );
-        return response.data.data;
+    async removeMember(orgId: string, memberId: string, userId: string): Promise<void> {
+        await apiClient.delete(`/orgs/${orgId}/members/${memberId}`, {
+            params: { userId },
+        });
+    },
+
+    // ============ ALLOCATIONS ============
+
+    /**
+     * Create an allocation in an organization
+     * POST /orgs/{orgId}/allocations?userId=xxx
+     */
+    async createAllocation(
+        orgId: string,
+        userId: string,
+        data: {
+            name: string;
+            description?: string;
+            managerMemberId: string;
+            parentAllocationId?: string;
+            metadata?: object;
+        }
+    ): Promise<Allocation> {
+        const response = await apiClient.post<Allocation>(`/orgs/${orgId}/allocations`, data, {
+            params: { userId },
+        });
+        return response.data;
+    },
+
+    /**
+     * Get all allocations for an organization
+     * GET /orgs/{orgId}/allocations
+     */
+    async getOrgAllocations(orgId: string): Promise<Allocation[]> {
+        const response = await apiClient.get<Allocation[]>(`/orgs/${orgId}/allocations`);
+        return response.data;
     },
 
     /**
      * Get allocation details
+     * GET /allocations/{allocationId}
      */
     async getAllocation(allocationId: string): Promise<Allocation> {
-        const response = await apiClient.get<{ success: true; data: Allocation }>(
-            `/allocations/${allocationId}`
-        );
-        return response.data.data;
+        const response = await apiClient.get<Allocation>(`/allocations/${allocationId}`);
+        return response.data;
     },
 
     /**
-     * Fund an allocation from org wallet
+     * Update an allocation
+     * PATCH /allocations/{allocationId}?userId=xxx
      */
-    async fundAllocation(
+    async updateAllocation(
         allocationId: string,
-        data: FundAllocationRequest,
-        userId: string
+        userId: string,
+        data: { name?: string; description?: string; managerMemberId?: string; metadata?: object }
+    ): Promise<Allocation> {
+        const response = await apiClient.patch<Allocation>(`/allocations/${allocationId}`, data, {
+            params: { userId },
+        });
+        return response.data;
+    },
+
+    /**
+     * Freeze an allocation
+     * POST /allocations/{allocationId}/freeze?userId=xxx
+     */
+    async freezeAllocation(allocationId: string, userId: string): Promise<void> {
+        await apiClient.post(`/allocations/${allocationId}/freeze`, null, {
+            params: { userId },
+        });
+    },
+
+    /**
+     * Unfreeze an allocation
+     * POST /allocations/{allocationId}/unfreeze?userId=xxx
+     */
+    async unfreezeAllocation(allocationId: string, userId: string): Promise<void> {
+        await apiClient.post(`/allocations/${allocationId}/unfreeze`, null, {
+            params: { userId },
+        });
+    },
+
+    /**
+     * Fund allocation from org wallet
+     * POST /allocations/{allocationId}/fund?userId=xxx
+     */
+    async fundFromOrg(
+        allocationId: string,
+        userId: string,
+        data: { amount: number; description?: string }
     ): Promise<void> {
         await apiClient.post(`/allocations/${allocationId}/fund`, data, {
             params: { userId },
         });
     },
 
-    // ============ Rules Operations ============
+    /**
+     * Fund allocation from parent allocation
+     * POST /allocations/{allocationId}/fund-from-parent?userId=xxx
+     */
+    async fundFromParent(
+        allocationId: string,
+        userId: string,
+        data: { amount: number; description?: string }
+    ): Promise<void> {
+        await apiClient.post(`/allocations/${allocationId}/fund-from-parent`, data, {
+            params: { userId },
+        });
+    },
+
+    // ============ SPENDING RULES ============
 
     /**
-     * Add a spending rule
+     * Add a spending rule to an allocation
+     * POST /allocations/{allocationId}/rules?userId=xxx
      */
     async addRule(
         allocationId: string,
-        data: AddRuleRequest,
-        userId: string
-    ): Promise<AllocationRule> {
-        const response = await apiClient.post<{ success: true; data: AllocationRule }>(
+        userId: string,
+        data: {
+            ruleType: 'TXN_LIMIT' | 'DAILY_LIMIT' | 'MONTHLY_LIMIT' | 'TIME_LOCK' | 'WHITELIST_RECIPIENTS' | 'REQUIRES_APPROVAL';
+            config: object;
+            description?: string;
+        }
+    ): Promise<SpendingRule> {
+        const response = await apiClient.post<SpendingRule>(
             `/allocations/${allocationId}/rules`,
             data,
             { params: { userId } }
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
-     * Get rules for an allocation
+     * Get all rules for an allocation
+     * GET /allocations/{allocationId}/rules
      */
-    async getRules(allocationId: string): Promise<AllocationRule[]> {
-        const response = await apiClient.get<{ success: true; data: AllocationRule[] }>(
-            `/allocations/${allocationId}/rules`
-        );
-        return response.data.data;
+    async getRules(allocationId: string): Promise<SpendingRule[]> {
+        const response = await apiClient.get<SpendingRule[]>(`/allocations/${allocationId}/rules`);
+        return response.data;
     },
 
     /**
-     * Toggle rule enabled state
+     * Update a spending rule
+     * PATCH /rules/{ruleId}?userId=xxx
      */
     async updateRule(
         ruleId: string,
-        enabled: boolean,
-        userId: string
-    ): Promise<AllocationRule> {
-        const response = await apiClient.patch<{ success: true; data: AllocationRule }>(
-            `/rules/${ruleId}`,
-            { enabled },
-            { params: { userId } }
-        );
-        return response.data.data;
+        userId: string,
+        data: { config?: object; enabled?: boolean; description?: string }
+    ): Promise<SpendingRule> {
+        const response = await apiClient.patch<SpendingRule>(`/rules/${ruleId}`, data, {
+            params: { userId },
+        });
+        return response.data;
     },
 
     /**
-     * Delete a rule
+     * Delete a spending rule
+     * DELETE /rules/{ruleId}?userId=xxx
      */
     async deleteRule(ruleId: string, userId: string): Promise<void> {
-        await apiClient.delete(`/rules/${ruleId}`, { params: { userId } });
+        await apiClient.delete(`/rules/${ruleId}`, {
+            params: { userId },
+        });
     },
 };

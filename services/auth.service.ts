@@ -1,52 +1,106 @@
-import type { AuthResponse, LoginRequest, SignupRequest, User } from '@/types';
+import type { User } from '@/types';
 import apiClient, { TokenStorage } from './api-client';
+
+// Registration request matches API spec
+export interface RegisterRequest {
+    email: string;
+    displayName: string;
+    password: string;
+}
+
+// Login request matches API spec
+export interface LoginRequest {
+    email: string;
+    password: string;
+}
+
+// Auth response from API
+export interface AuthResponse {
+    user: User;
+    accessToken: string;
+    refreshToken?: string;
+}
 
 export const authService = {
     /**
+     * Register a new user
+     * POST /auth/register
+     */
+    async register(data: RegisterRequest): Promise<AuthResponse> {
+        const response = await apiClient.post<AuthResponse>('/auth/register', data);
+
+        // Store tokens and user
+        if (response.data.accessToken) {
+            await TokenStorage.setToken(response.data.accessToken);
+        }
+        if (response.data.refreshToken) {
+            await TokenStorage.setRefreshToken(response.data.refreshToken);
+        }
+        if (response.data.user) {
+            await TokenStorage.setUser(response.data.user);
+        }
+
+        return response.data;
+    },
+
+    /**
      * Login with email and password
+     * POST /auth/login
      */
     async login(data: LoginRequest): Promise<AuthResponse> {
-        const response = await apiClient.post<{ success: true; data: AuthResponse }>(
-            '/auth/login',
-            data
-        );
+        const response = await apiClient.post<AuthResponse>('/auth/login', data);
 
-        // Store tokens
-        await TokenStorage.setToken(response.data.data.accessToken);
-        await TokenStorage.setRefreshToken(response.data.data.refreshToken);
+        // Store tokens and user
+        if (response.data.accessToken) {
+            await TokenStorage.setToken(response.data.accessToken);
+        }
+        if (response.data.refreshToken) {
+            await TokenStorage.setRefreshToken(response.data.refreshToken);
+        }
+        if (response.data.user) {
+            await TokenStorage.setUser(response.data.user);
+        }
 
-        return response.data.data;
+        return response.data;
     },
 
     /**
-     * Register a new user
+     * Request password reset
+     * POST /auth/forgot-password
      */
-    async signup(data: SignupRequest): Promise<AuthResponse> {
-        const response = await apiClient.post<{ success: true; data: AuthResponse }>(
-            '/auth/register',
-            data
-        );
-
-        // Store tokens
-        await TokenStorage.setToken(response.data.data.accessToken);
-        await TokenStorage.setRefreshToken(response.data.data.refreshToken);
-
-        return response.data.data;
+    async forgotPassword(email: string): Promise<void> {
+        await apiClient.post('/auth/forgot-password', { email });
     },
 
     /**
-     * Logout - clear tokens
+     * Reset password with token
+     * POST /auth/reset-password
+     */
+    async resetPassword(token: string, password: string): Promise<void> {
+        await apiClient.post('/auth/reset-password', { token, password });
+    },
+
+    /**
+     * Verify email with token
+     * POST /auth/verify-email
+     */
+    async verifyEmail(email: string, token: string): Promise<void> {
+        await apiClient.post('/auth/verify-email', { email, token });
+    },
+
+    /**
+     * Logout - clear all stored tokens
      */
     async logout(): Promise<void> {
         await TokenStorage.clearTokens();
     },
 
     /**
-     * Get current user profile
+     * Get stored user
      */
-    async getProfile(): Promise<User> {
-        const response = await apiClient.get<{ success: true; data: User }>('/auth/me');
-        return response.data.data;
+    async getStoredUser(): Promise<User | null> {
+        const user = await TokenStorage.getUser();
+        return user as User | null;
     },
 
     /**
@@ -58,22 +112,11 @@ export const authService = {
     },
 
     /**
-     * Refresh access token
+     * Get user by ID
+     * GET /users/{id}
      */
-    async refreshToken(): Promise<string> {
-        const refreshToken = await TokenStorage.getRefreshToken();
-        if (!refreshToken) {
-            throw new Error('No refresh token available');
-        }
-
-        const response = await apiClient.post<{ success: true; data: { accessToken: string } }>(
-            '/auth/refresh',
-            { refreshToken }
-        );
-
-        const newToken = response.data.data.accessToken;
-        await TokenStorage.setToken(newToken);
-
-        return newToken;
+    async getUserById(userId: string): Promise<User> {
+        const response = await apiClient.get<User>(`/users/${userId}`);
+        return response.data;
     },
 };

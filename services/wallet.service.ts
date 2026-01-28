@@ -3,21 +3,23 @@ import type {
     PaginatedResponse,
     Transaction,
     Wallet,
-    WalletBalance,
+    WalletBalance
 } from '@/types';
 import apiClient from './api-client';
 
 export const walletService = {
     /**
-     * Get wallet by user ID
+     * Get wallet for a user
+     * GET /wallets/user/{userId}
      */
-    async getWalletByUserId(userId: string): Promise<Wallet> {
+    async getUserWallet(userId: string): Promise<Wallet> {
         const response = await apiClient.get<Wallet>(`/wallets/user/${userId}`);
         return response.data;
     },
 
     /**
-     * Get detailed wallet balance (cached + ledger)
+     * Get wallet balance
+     * GET /wallets/{walletId}/balance
      */
     async getBalance(walletId: string): Promise<WalletBalance> {
         const response = await apiClient.get<WalletBalance>(`/wallets/${walletId}/balance`);
@@ -25,7 +27,8 @@ export const walletService = {
     },
 
     /**
-     * Get transaction history
+     * Get wallet transaction history
+     * GET /wallets/{walletId}/transactions
      */
     async getTransactions(
         walletId: string,
@@ -40,12 +43,13 @@ export const walletService = {
     },
 
     /**
-     * Get ledger entries (detailed movement tracking)
+     * Get wallet ledger entries (detailed statement)
+     * GET /wallets/{walletId}/ledger
      */
-    async getLedger(
+    async getLedgerEntries(
         walletId: string,
         page: number = 1,
-        limit: number = 50
+        limit: number = 20
     ): Promise<PaginatedResponse<LedgerEntry>> {
         const response = await apiClient.get<PaginatedResponse<LedgerEntry>>(
             `/wallets/${walletId}/ledger`,

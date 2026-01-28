@@ -1,86 +1,94 @@
-import type {
-    AddBankAccountRequest,
-    Bank,
-    BankAccount,
-    InitializeDepositRequest,
-    InitializeDepositResponse,
-    InitiateWithdrawalRequest,
-    ResolveAccountRequest,
-    ResolvedAccount,
-    VerifyDepositResponse,
-    WithdrawalResponse,
-} from '@/types';
+import type { Bank, BankAccount, DepositInitResponse, Transaction, WithdrawalResult } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
 import apiClient from './api-client';
 
+// Paystack callback URL for mobile
+const PAYSTACK_CALLBACK_URL = 'spewpay://payment/callback';
+
 export const paymentService = {
-    // ============ Deposit Operations ============
+    // ============ DEPOSITS ============
 
     /**
-     * Initialize a deposit (fund wallet)
+     * Initialize a deposit transaction
+     * POST /payments/deposits/initialize
      */
-    async initializeDeposit(data: InitializeDepositRequest): Promise<InitializeDepositResponse['data']> {
-        const response = await apiClient.post<InitializeDepositResponse>(
-            '/payments/deposits/initialize',
-            data
-        );
-        return response.data.data;
+    async initializeDeposit(params: {
+        userId: string;
+        email: string;
+        amountInNaira: number;
+        callbackUrl?: string;
+        idempotencyKey?: string;
+    }): Promise<DepositInitResponse> {
+        const response = await apiClient.post<DepositInitResponse>('/payments/deposits/initialize', {
+            userId: params.userId,
+            email: params.email,
+            amountInNaira: params.amountInNaira,
+            callbackUrl: params.callbackUrl || PAYSTACK_CALLBACK_URL,
+            idempotencyKey: params.idempotencyKey || uuidv4(),
+        });
+        return response.data;
     },
 
     /**
-     * Verify deposit status
+     * Verify a deposit transaction
+     * GET /payments/deposits/{reference}/verify
      */
-    async verifyDeposit(reference: string): Promise<VerifyDepositResponse['data']> {
-        const response = await apiClient.get<VerifyDepositResponse>(
-            `/payments/deposits/${reference}/verify`
-        );
-        return response.data.data;
+    async verifyDeposit(reference: string): Promise<Transaction> {
+        const response = await apiClient.get<Transaction>(`/payments/deposits/${reference}/verify`);
+        return response.data;
     },
 
-    // ============ Bank Account Operations ============
+    // ============ BANK ACCOUNTS (via Transfers endpoint) ============
 
     /**
-     * Get list of supported banks
+     * List all supported banks
+     * GET /transfers/banks
      */
-    async getBanks(): Promise<Bank[]> {
-        const response = await apiClient.get<{ success: true; data: Bank[] }>('/transfers/banks');
-        return response.data.data;
-    },
-
-    /**
-     * Resolve bank account (verify before adding)
-     */
-    async resolveAccount(data: ResolveAccountRequest): Promise<ResolvedAccount> {
-        const response = await apiClient.post<{ success: true; data: ResolvedAccount }>(
-            '/transfers/resolve-account',
-            data
-        );
-        return response.data.data;
+    async listBanks(): Promise<Bank[]> {
+        const response = await apiClient.get<Bank[]>('/transfers/banks');
+        return response.data;
     },
 
     /**
-     * Add a new bank account
+     * Resolve bank account to get account name
+     * POST /transfers/resolve-account
      */
-    async addBankAccount(data: AddBankAccountRequest): Promise<BankAccount> {
-        const response = await apiClient.post<{ success: true; data: BankAccount }>(
-            '/transfers/recipients',
-            data
-        );
-        return response.data.data;
+    async resolveAccount(accountNumber: string, bankCode: string): Promise<{ account_name: string; account_number: string }> {
+        const response = await apiClient.post('/transfers/resolve-account', {
+            accountNumber,
+            bankCode,
+        });
+        return response.data;
     },
 
     /**
-     * Get user's saved bank accounts
+     * Get all bank accounts for a user
+     * GET /transfers/recipients?userId=xxx
      */
-    async getBankAccounts(userId: string): Promise<BankAccount[]> {
-        const response = await apiClient.get<{ success: true; data: BankAccount[] }>(
-            '/transfers/recipients',
-            { params: { userId } }
-        );
-        return response.data.data;
+    async listBankAccounts(userId: string): Promise<BankAccount[]> {
+        const response = await apiClient.get<BankAccount[]>('/transfers/recipients', {
+            params: { userId },
+        });
+        return response.data;
+    },
+
+    /**
+     * Add a bank account for withdrawals
+     * POST /transfers/recipients
+     */
+    async addBankAccount(params: {
+        userId: string;
+        accountNumber: string;
+        bankCode: string;
+        isDefault?: boolean;
+    }): Promise<BankAccount> {
+        const response = await apiClient.post<BankAccount>('/transfers/recipients', params);
+        return response.data;
     },
 
     /**
      * Delete a bank account
+     * DELETE /transfers/recipients/{recipientId}?userId=xxx
      */
     async deleteBankAccount(recipientId: string, userId: string): Promise<void> {
         await apiClient.delete(`/transfers/recipients/${recipientId}`, {
@@ -88,13 +96,26 @@ export const paymentService = {
         });
     },
 
-    // ============ Withdrawal Operations ============
+    // ============ WITHDRAWALS ============
 
     /**
-     * Initiate withdrawal to bank account
+     * Initiate a withdrawal to a bank account
+     * POST /transfers/withdraw
      */
-    async initiateWithdrawal(data: InitiateWithdrawalRequest): Promise<WithdrawalResponse['data']> {
-        const response = await apiClient.post<WithdrawalResponse>('/transfers/withdraw', data);
-        return response.data.data;
+    async initiateWithdrawal(params: {
+        userId: string;
+        recipientId: string;
+        amountInNaira: number;
+        reason?: string;
+        idempotencyKey?: string;
+    }): Promise<WithdrawalResult> {
+        const response = await apiClient.post<WithdrawalResult>('/transfers/withdraw', {
+            userId: params.userId,
+            recipientId: params.recipientId,
+            amountInNaira: params.amountInNaira,
+            reason: params.reason,
+            idempotencyKey: params.idempotencyKey || uuidv4(),
+        });
+        return response.data;
     },
 };

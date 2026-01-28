@@ -1,13 +1,16 @@
-import { authService, TokenStorage } from '@/services';
-import type { LoginRequest, SignupRequest, User } from '@/types';
+import { authService, LoginRequest, RegisterRequest } from '@/services/auth.service';
+import type { User } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-interface AuthContextType {
+interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+}
+
+interface AuthContextType extends AuthState {
     login: (data: LoginRequest) => Promise<void>;
-    signup: (data: SignupRequest) => Promise<void>;
+    signup: (data: RegisterRequest) => Promise<void>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
 }
@@ -25,56 +28,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkAuthState = async () => {
         try {
-            const hasToken = await authService.isAuthenticated();
-            if (hasToken) {
-                const profile = await authService.getProfile();
-                setUser(profile);
+            const isAuth = await authService.isAuthenticated();
+            if (isAuth) {
+                const storedUser = await authService.getStoredUser();
+                setUser(storedUser);
             }
         } catch (error) {
-            // Token might be expired, clear it
-            await TokenStorage.clearTokens();
-            setUser(null);
+            console.error('Error checking auth state:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
     const login = useCallback(async (data: LoginRequest) => {
-        setIsLoading(true);
         try {
             const response = await authService.login(data);
             setUser(response.user);
-        } finally {
-            setIsLoading(false);
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
         }
     }, []);
 
-    const signup = useCallback(async (data: SignupRequest) => {
-        setIsLoading(true);
+    const signup = useCallback(async (data: RegisterRequest) => {
         try {
-            const response = await authService.signup(data);
+            const response = await authService.register(data);
             setUser(response.user);
-        } finally {
-            setIsLoading(false);
+        } catch (error) {
+            console.error('Signup error:', error);
+            throw error;
         }
     }, []);
 
     const logout = useCallback(async () => {
-        setIsLoading(true);
         try {
             await authService.logout();
             setUser(null);
-        } finally {
-            setIsLoading(false);
+        } catch (error) {
+            console.error('Logout error:', error);
+            throw error;
         }
     }, []);
 
     const refreshUser = useCallback(async () => {
         try {
-            const profile = await authService.getProfile();
-            setUser(profile);
-        } catch {
-            // Silently fail
+            const storedUser = await authService.getStoredUser();
+            setUser(storedUser);
+        } catch (error) {
+            console.error('Error refreshing user:', error);
         }
     }, []);
 

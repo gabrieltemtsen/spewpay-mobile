@@ -1,5 +1,5 @@
-import type { Transaction, User } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import type { ApiResponse, Transaction, User } from '@/types';
+import * as Crypto from 'expo-crypto';
 import apiClient from './api-client';
 
 export const transferService = {
@@ -14,14 +14,16 @@ export const transferService = {
         description?: string;
         idempotencyKey?: string;
     }): Promise<Transaction> {
-        const response = await apiClient.post<Transaction>('/transfers/internal', {
+        const response = await apiClient.post<ApiResponse<Transaction>>('/transfers/internal', {
             sourceUserId: params.sourceUserId,
             destinationUserId: params.destinationUserId,
             amountInNaira: params.amountInNaira,
             description: params.description,
-            idempotencyKey: params.idempotencyKey || uuidv4(),
+            idempotencyKey: params.idempotencyKey || Crypto.randomUUID(),
         });
-        return response.data;
+        const body = response.data;
+        // Unwrap if wrapped, otherwise return as-is
+        return (body as any).id ? body as unknown as Transaction : (body as unknown as ApiResponse<Transaction>).data;
     },
 
     /**

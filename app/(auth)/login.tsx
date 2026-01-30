@@ -49,6 +49,7 @@ export default function LoginScreen() {
     });
 
     const onSubmit = async (data: LoginForm) => {
+        console.log('🔑 onSubmit called with:', data);
         try {
             if (Platform.OS !== 'web') {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -59,6 +60,7 @@ export default function LoginScreen() {
             }
             router.replace('/(tabs)');
         } catch (error: any) {
+            console.error('❌ Login error:', error);
             if (Platform.OS !== 'web') {
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             }
@@ -67,6 +69,12 @@ export default function LoginScreen() {
                 error?.message || 'Please check your credentials and try again.'
             );
         }
+    };
+
+    const handleLogin = () => {
+        console.log('🖱️ Sign In button pressed');
+        console.log('📝 Form errors:', errors);
+        handleSubmit(onSubmit)();
     };
 
     return (
@@ -170,7 +178,7 @@ export default function LoginScreen() {
 
                             {/* Login Button */}
                             <TouchableOpacity
-                                onPress={handleSubmit(onSubmit)}
+                                onPress={handleLogin}
                                 disabled={isLoading}
                                 activeOpacity={0.8}
                                 style={styles.buttonWrapper}
@@ -180,6 +188,7 @@ export default function LoginScreen() {
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                     style={styles.primaryButton}
+                                    pointerEvents="none"
                                 >
                                     {isLoading ? (
                                         <ActivityIndicator color="#fff" />

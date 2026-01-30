@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -19,14 +20,23 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useToast } from '@/components/Toast';
+import { useAuth } from '@/contexts';
+import { transferService } from '@/services/transfer.service';
+
 const { height: screenHeight } = Dimensions.get('window');
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 export default function TransferScreen() {
+    const router = useRouter();
+    const { user } = useAuth();
+    const { showToast } = useToast();
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
 
     const handleQuickAmount = async (value: number) => {
         if (Platform.OS !== 'web') {
@@ -35,9 +45,42 @@ export default function TransferScreen() {
         setAmount(value.toString());
     };
 
+    const handleSearchUsers = async (query: string) => {
+        setRecipient(query);
+        if (query.length < 2) {
+            setSearchResults([]);
+            setShowSearchResults(false);
+            return;
+        }
+
+        try {
+            const results = await transferService.searchUsers(query);
+            setSearchResults(results || []);
+            setShowSearchResults(true);
+        } catch (error) {
+            console.error('Search error:', error);
+        }
+    };
+
+    const handleSelectUser = (user: any) => {
+        setRecipient(user.email);
+        setShowSearchResults(false);
+    };
+
     const handleSend = async () => {
+        if (!user) {
+            Alert.alert('Error', 'You must be logged in to transfer');
+            return;
+        }
+
         if (!recipient || !amount) {
             Alert.alert('Missing Info', 'Please enter recipient and amount');
+            return;
+        }
+
+        const numAmount = parseFloat(amount);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            Alert.alert('Invalid Amount', 'Please enter a valid amount');
             return;
         }
 
@@ -46,15 +89,39 @@ export default function TransferScreen() {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
 
-        setTimeout(async () => {
+        try {
+            // Find recipient user
+            const users = await transferService.searchUsers(recipient);
+            const recipientUser = users?.find((u: any) => u.email === recipient);
+
+            if (!recipientUser) {
+                throw new Error('Recipient not found');
+            }
+
+            await transferService.internalTransfer({
+                sourceUserId: user.id,
+                destinationUserId: recipientUser.id,
+                amountInNaira: numAmount,
+                description: description || undefined,
+            });
+
             setIsLoading(false);
             if (Platform.OS !== 'web') {
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
-            Alert.alert('Success', `₦${amount} sent to ${recipient}`, [
-                { text: 'OK', onPress: () => { setRecipient(''); setAmount(''); setDescription(''); } }
-            ]);
-        }, 2000);
+
+            showToast(`₦${numAmount.toLocaleString()} sent successfully!`, 'success');
+            setRecipient('');
+            setAmount('');
+            setDescription('');
+
+            // Navigate back to home
+            setTimeout(() => router.push('/(tabs)'), 1000);
+        } catch (error: any) {
+            setIsLoading(false);
+            console.error('Transfer error:', error);
+            Alert.alert('Transfer Failed', error.message || 'Could not complete transfer');
+        }
     };
 
     return (

@@ -1,60 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts';
-import type { Transaction } from '@/types';
+import { useWallet } from '@/hooks/useWallet';
 
 const { height: screenHeight } = Dimensions.get('window');
-
-// Mock data for demo - will be replaced with real API data
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    reference: 'TXN-001',
-    type: 'DEPOSIT',
-    status: 'COMPLETED',
-    amount: { kobo: '500000', naira: 5000 },
-    description: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    reference: 'TXN-002',
-    type: 'TRANSFER',
-    status: 'COMPLETED',
-    amount: { kobo: '150000', naira: 1500 },
-    description: 'Payment to John',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '3',
-    reference: 'TXN-003',
-    type: 'WITHDRAWAL',
-    status: 'PROCESSING',
-    amount: { kobo: '200000', naira: 2000 },
-    description: 'Bank withdrawal',
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
   }).format(amount);
 };
 
@@ -82,6 +53,15 @@ const getTransactionIcon = (type: string) => {
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { balance, transactions, isLoading, isRefreshing, refresh } = useWallet();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        refresh();
+      }
+    }, [user, refresh])
+  );
 
   const handleAddMoney = () => {
     router.push('/deposit');
@@ -113,6 +93,14 @@ export default function DashboardScreen() {
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={refresh}
+                tintColor="#FFFFFF"
+                colors={['#0066FF']}
+              />
+            }
           >
             {/* Header */}
             <View style={styles.header}>
@@ -145,7 +133,13 @@ export default function DashboardScreen() {
                     <Ionicons name="eye-outline" size={20} color="rgba(255,255,255,0.7)" />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.balanceAmount}>₦33,500.00</Text>
+                {isLoading && !balance ? (
+                  <ActivityIndicator color="#fff" style={{ marginTop: 20, alignSelf: 'flex-start' }} />
+                ) : (
+                  <Text style={styles.balanceAmount}>
+                    {formatCurrency(balance?.cachedBalance?.naira || 0)}
+                  </Text>
+                )}
                 <Text style={styles.balanceSubtext}>Available Balance</Text>
 
                 <View style={styles.balanceActions}>
@@ -211,8 +205,10 @@ export default function DashboardScreen() {
               </View>
 
               <View style={styles.transactionsList}>
-                {mockTransactions.length > 0 ? (
-                  mockTransactions.map((transaction, index) => {
+                {isLoading && transactions.length === 0 ? (
+                  <ActivityIndicator color="#0066FF" style={{ padding: 20 }} />
+                ) : transactions.length > 0 ? (
+                  transactions.map((transaction, index) => {
                     const icon = getTransactionIcon(transaction.type);
                     return (
                       <View key={transaction.id}>
@@ -254,7 +250,7 @@ export default function DashboardScreen() {
                             </Text>
                           </View>
                         </View>
-                        {index < mockTransactions.length - 1 && (
+                        {index < transactions.length - 1 && (
                           <View style={styles.divider} />
                         )}
                       </View>

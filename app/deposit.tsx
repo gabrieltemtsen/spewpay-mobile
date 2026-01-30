@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -18,11 +20,15 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { useAuth } from '@/contexts';
+import { paymentService } from '@/services/payment.service';
+
 const { height: screenHeight } = Dimensions.get('window');
 const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 20000];
 
 export default function DepositScreen() {
     const router = useRouter();
+    const { user } = useAuth();
     const [amount, setAmount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -40,22 +46,58 @@ export default function DepositScreen() {
             return;
         }
 
+        if (!user) {
+            Alert.alert('Error', 'You must be logged in to deposit');
+            return;
+        }
+
         setIsLoading(true);
         if (Platform.OS !== 'web') {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
 
-        setTimeout(async () => {
-            setIsLoading(false);
-            if (Platform.OS !== 'web') {
-                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        try {
+            // Initialize Paystack transaction
+            const response = await paymentService.initializeDeposit({
+                userId: user.id,
+                email: user.email,
+                amountInNaira: numAmount,
+            });
+
+            if (response?.data?.authorizationUrl) {
+                // Determine redirect URL
+                const redirectUrl = Linking.createURL('payment/callback');
+
+                // Open Paystack Checkout
+                // On mobile, we use WebBrowser.openAuthSessionAsync for deep linking
+                // On web, we redirect or open new tab
+                if (Platform.OS === 'web') {
+                    window.location.href = response.data.authorizationUrl;
+                    // OR window.open(response.data.authorizationUrl, '_blank');
+                } else {
+                    const result = await WebBrowser.openAuthSessionAsync(
+                        response.data.authorizationUrl,
+                        redirectUrl
+                    );
+
+                    if (result.type === 'success' && result.url) {
+                        // Parse the returning URL to check for status
+                        // In many cases, we might rely on the payment/callback route instead
+                        // checking URL params
+                    } else {
+                        // User cancelled or closed browser manually
+                        setIsLoading(false);
+                    }
+                }
+            } else {
+                throw new Error('No authorization URL returned');
             }
-            Alert.alert(
-                'Payment Initiated',
-                'You would be redirected to Paystack to complete payment.',
-                [{ text: 'OK', onPress: () => router.back() }]
-            );
-        }, 1500);
+        } catch (error: any) {
+            console.error('Deposit error:', error);
+            setIsLoading(false);
+            Alert.alert('Deposit Failed', error.message || 'Could not initialize payment');
+        }
+        // Note: loading state remains true if successful redirect on mobile, until callback handles it
     };
 
     return (

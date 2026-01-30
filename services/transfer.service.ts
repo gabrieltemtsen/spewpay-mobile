@@ -23,7 +23,7 @@ export const transferService = {
         });
         const body = response.data;
         // Unwrap if wrapped, otherwise return as-is
-        return (body as any).id ? body as Transaction : (body as ApiResponse<Transaction>).data;
+        return (body as any).id ? body as unknown as Transaction : (body as unknown as ApiResponse<Transaction>).data;
     },
 
     /**

@@ -12,53 +12,15 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MenuItem, MenuSection } from '@/components/Menu';
 import { useAuth } from '@/contexts';
 
 const { height: screenHeight } = Dimensions.get('window');
-
-interface MenuItemProps {
-    icon: keyof typeof Ionicons.glyphMap;
-    label: string;
-    subtitle?: string;
-    onPress: () => void;
-    danger?: boolean;
-}
-
-function MenuItem({ icon, label, subtitle, onPress, danger }: MenuItemProps) {
-    const handlePress = async () => {
-        if (Platform.OS !== 'web') {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-        onPress();
-    };
-
-    return (
-        <TouchableOpacity onPress={handlePress} style={styles.menuItem} activeOpacity={0.7}>
-            <View style={[styles.menuIcon, danger ? styles.menuIconDanger : styles.menuIconPrimary]}>
-                <Ionicons name={icon} size={20} color={danger ? '#EF4444' : '#0066FF'} />
-            </View>
-            <View style={styles.menuInfo}>
-                <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>{label}</Text>
-                {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#64748B" />
-        </TouchableOpacity>
-    );
-}
-
-function MenuSection({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-        <View style={styles.menuSection}>
-            {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
-            <View style={styles.menuCard}>{children}</View>
-        </View>
-    );
-}
 
 function Divider() {
     return <View style={styles.divider} />;
@@ -137,23 +99,23 @@ export default function ProfileScreen() {
                             <MenuSection title="ACCOUNT">
                                 <MenuItem
                                     icon="wallet-outline"
-                                    label="Bank Accounts"
-                                    subtitle="Manage withdrawal accounts"
-                                    onPress={() => { }}
+                                    label="Withdrawal / Banks"
+                                    subtitle="Manage funds withdrawal"
+                                    onPress={() => router.push('/withdrawal')}
                                 />
                                 <Divider />
                                 <MenuItem
-                                    icon="receipt-outline"
-                                    label="Ledger"
-                                    subtitle="Detailed transaction log"
-                                    onPress={() => { }}
+                                    icon="qr-code-outline"
+                                    label="My QR Code"
+                                    subtitle="Share to receive money"
+                                    onPress={() => router.push('/qr-code')}
                                 />
                                 <Divider />
                                 <MenuItem
                                     icon="shield-checkmark-outline"
                                     label="Security"
                                     subtitle="Password, biometrics"
-                                    onPress={() => { }}
+                                    onPress={() => router.push('/settings/security')}
                                 />
                             </MenuSection>
 
@@ -174,9 +136,9 @@ export default function ProfileScreen() {
                             </MenuSection>
 
                             <MenuSection title="SUPPORT">
-                                <MenuItem icon="help-circle-outline" label="Help Center" onPress={() => { }} />
+                                <MenuItem icon="help-circle-outline" label="Help Center" onPress={() => router.push('/support')} />
                                 <Divider />
-                                <MenuItem icon="chatbubble-outline" label="Contact Support" onPress={() => { }} />
+                                <MenuItem icon="chatbubble-outline" label="Contact Support" onPress={() => router.push('/support')} />
                             </MenuSection>
 
                             <MenuSection title="">
@@ -260,58 +222,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    menuSection: {
-        marginBottom: 24,
-        paddingHorizontal: 16,
-    },
-    sectionTitle: {
-        color: '#64748B',
-        fontSize: 12,
-        fontWeight: '600',
-        marginBottom: 8,
-        marginLeft: 4,
-    },
-    menuCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 20,
-        overflow: 'hidden',
-    },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-    },
-    menuIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    menuIconPrimary: {
-        backgroundColor: 'rgba(0, 102, 255, 0.15)',
-    },
-    menuIconDanger: {
-        backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    },
-    menuInfo: {
-        flex: 1,
-        marginLeft: 12,
-    },
-    menuLabel: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    menuLabelDanger: {
-        color: '#EF4444',
-    },
-    menuSubtitle: {
-        color: '#64748B',
-        fontSize: 13,
-        marginTop: 2,
     },
     divider: {
         height: 1,

@@ -6,12 +6,15 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
+import { ToastProvider } from '@/components/Toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { QueryProvider } from '@/contexts/QueryProvider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { notificationService } from '@/services/notification.service';
 
 // Custom dark theme with OLED optimized colors
 const SpewpayDarkTheme = {
+  // ... (keep same)
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
@@ -24,6 +27,7 @@ const SpewpayDarkTheme = {
 };
 
 const SpewpayLightTheme = {
+  // ... (keep same)
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
@@ -42,6 +46,10 @@ function RootLayoutNav() {
   const router = useRouter();
 
   console.log('🔐 Auth State:', { isAuthenticated, isLoading, segments });
+
+  useEffect(() => {
+    notificationService.registerForPushNotificationsAsync();
+  }, []);
 
   useEffect(() => {
     if (isLoading) {
@@ -85,11 +93,19 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen
-          name="withdraw"
+          name="withdrawal"
           options={{
             presentation: 'modal',
-            title: 'Withdraw',
+            title: 'Withdraw to Bank',
             headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="qr-code"
+          options={{
+            presentation: 'modal',
+            title: 'QR Code',
+            headerShown: false,
           }}
         />
         <Stack.Screen
@@ -109,7 +125,9 @@ export default function RootLayout() {
   return (
     <QueryProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <ToastProvider>
+          <RootLayoutNav />
+        </ToastProvider>
       </AuthProvider>
     </QueryProvider>
   );

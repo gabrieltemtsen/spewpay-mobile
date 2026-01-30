@@ -3,6 +3,7 @@ export { ConfirmationModal } from './ConfirmationModal';
 export { EmptyState } from './EmptyState';
 export { FilterChips } from './FilterChips';
 export { LoadingScreen } from './LoadingScreen';
+export { MenuItem, MenuSection } from './Menu';
 export { QRCodeGenerator } from './QRCodeGenerator';
 export { QRCodeScanner } from './QRCodeScanner';
 export { SearchBar, SearchBar } from './SearchBar';

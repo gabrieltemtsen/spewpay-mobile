@@ -57,7 +57,7 @@ export default function SecuritySettings() {
                                     value={isEnabled}
                                     onValueChange={handleBiometricToggle}
                                     trackColor={{ false: colors.textTertiary, true: colors.primary }}
-                                    thumbColor={colors.inverse}
+                                    thumbColor={'#FFFFFF'}
                                     disabled={isLoading}
                                 />
                             }

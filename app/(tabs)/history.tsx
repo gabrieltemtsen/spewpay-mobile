@@ -4,6 +4,7 @@ import {
     ActivityIndicator,
     Dimensions,
     FlatList,
+    RefreshControl,
     StatusBar,
     StyleSheet,
     Text,
@@ -11,8 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState, FilterChips, SearchBar, TransactionItem } from '@/components';
+import { TransactionDetailModal } from '@/components/TransactionDetailModal';
 import { colors } from '@/constants/spewpay-theme';
 import { useTransactions } from '@/hooks/useTransactions';
+import type { Transaction } from '@/types';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -102,6 +106,10 @@ export default function HistoryScreen() {
         );
     }
 
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+    // ... existing useMemo ...
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#000A1A" />
@@ -112,7 +120,12 @@ export default function HistoryScreen() {
                 <SafeAreaView style={styles.safeArea} edges={['top']}>
                     <FlatList
                         data={filteredTransactions}
-                        renderItem={({ item }) => <TransactionItem transaction={item} />}
+                        renderItem={({ item }) => (
+                            <TransactionItem
+                                transaction={item}
+                                onPress={() => setSelectedTransaction(item)}
+                            />
+                        )}
                         keyExtractor={(item) => item.id}
                         ListHeaderComponent={ListHeaderComponent}
                         ListEmptyComponent={
@@ -140,6 +153,12 @@ export default function HistoryScreen() {
                     />
                 </SafeAreaView>
             </LinearGradient>
+
+            <TransactionDetailModal
+                visible={!!selectedTransaction}
+                transaction={selectedTransaction}
+                onClose={() => setSelectedTransaction(null)}
+            />
         </View>
     );
 }

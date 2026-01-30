@@ -1,9 +1,9 @@
 import type { Bank, BankAccount, DepositInitResponse, Transaction, WithdrawalResult } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import apiClient from './api-client';
 
 // Paystack callback URL for mobile
-const PAYSTACK_CALLBACK_URL = 'spewpay://payment/callback';
+const PAYSTACK_CALLBACK_URL = 'spewpaymobile://payment/callback';
 
 export const paymentService = {
     // ============ DEPOSITS ============
@@ -24,7 +24,7 @@ export const paymentService = {
             email: params.email,
             amountInNaira: params.amountInNaira,
             callbackUrl: params.callbackUrl || PAYSTACK_CALLBACK_URL,
-            idempotencyKey: params.idempotencyKey || uuidv4(),
+            idempotencyKey: params.idempotencyKey || Crypto.randomUUID(),
         });
         return response.data;
     },
@@ -114,7 +114,7 @@ export const paymentService = {
             recipientId: params.recipientId,
             amountInNaira: params.amountInNaira,
             reason: params.reason,
-            idempotencyKey: params.idempotencyKey || uuidv4(),
+            idempotencyKey: params.idempotencyKey || Crypto.randomUUID(),
         });
         return response.data;
     },

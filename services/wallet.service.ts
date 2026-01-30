@@ -13,8 +13,10 @@ export const walletService = {
      * GET /wallets/user/{userId}
      */
     async getUserWallet(userId: string): Promise<Wallet> {
-        const response = await apiClient.get<Wallet>(`/wallets/user/${userId}`);
-        return response.data;
+        const response = await apiClient.get<any>(`/wallets/user/${userId}`);
+        const body = response.data;
+        // If body has 'id', it's the wallet. If not and has 'data', it's wrapped.
+        return (body.id) ? body : body.data;
     },
 
     /**
@@ -22,8 +24,9 @@ export const walletService = {
      * GET /wallets/{walletId}/balance
      */
     async getBalance(walletId: string): Promise<WalletBalance> {
-        const response = await apiClient.get<WalletBalance>(`/wallets/${walletId}/balance`);
-        return response.data;
+        const response = await apiClient.get<any>(`/wallets/${walletId}/balance`);
+        const body = response.data;
+        return (body.walletId || body.cachedBalance) ? body : body.data;
     },
 
     /**
@@ -35,11 +38,14 @@ export const walletService = {
         page: number = 1,
         limit: number = 20
     ): Promise<PaginatedResponse<Transaction>> {
-        const response = await apiClient.get<PaginatedResponse<Transaction>>(
+        const response = await apiClient.get<any>(
             `/wallets/${walletId}/transactions`,
             { params: { page, limit } }
         );
-        return response.data;
+        const body = response.data;
+        // If body.data is Array, it's flat PaginatedResponse.
+        // If body.data is Object, it's wrapped (because data.data would be array)
+        return Array.isArray(body.data) ? body : body.data;
     },
 
     /**
@@ -51,10 +57,11 @@ export const walletService = {
         page: number = 1,
         limit: number = 20
     ): Promise<PaginatedResponse<LedgerEntry>> {
-        const response = await apiClient.get<PaginatedResponse<LedgerEntry>>(
+        const response = await apiClient.get<any>(
             `/wallets/${walletId}/ledger`,
             { params: { page, limit } }
         );
-        return response.data;
+        const body = response.data;
+        return Array.isArray(body.data) ? body : body.data;
     },
 };

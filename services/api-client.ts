@@ -1,6 +1,7 @@
 import { ApiError } from '@/types';
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 // Production API URL
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.spewpay.com/api/v1';
@@ -17,45 +18,72 @@ const apiClient: AxiosInstance = axios.create({
     },
 });
 
-// Token management
+// Platform-aware storage helper
+// expo-secure-store only works on iOS/Android, use localStorage on web
+const Storage = {
+    async getItem(key: string): Promise<string | null> {
+        if (Platform.OS === 'web') {
+            return localStorage.getItem(key);
+        }
+        return await SecureStore.getItemAsync(key);
+    },
+
+    async setItem(key: string, value: string): Promise<void> {
+        if (Platform.OS === 'web') {
+            localStorage.setItem(key, value);
+            return;
+        }
+        await SecureStore.setItemAsync(key, value);
+    },
+
+    async removeItem(key: string): Promise<void> {
+        if (Platform.OS === 'web') {
+            localStorage.removeItem(key);
+            return;
+        }
+        await SecureStore.deleteItemAsync(key);
+    },
+};
+
+// Token management - uses platform-aware storage
 export const TokenStorage = {
     async getToken(): Promise<string | null> {
         try {
-            return await SecureStore.getItemAsync(TOKEN_KEY);
+            return await Storage.getItem(TOKEN_KEY);
         } catch {
             return null;
         }
     },
 
     async setToken(token: string): Promise<void> {
-        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        await Storage.setItem(TOKEN_KEY, token);
     },
 
     async getRefreshToken(): Promise<string | null> {
         try {
-            return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+            return await Storage.getItem(REFRESH_TOKEN_KEY);
         } catch {
             return null;
         }
     },
 
     async setRefreshToken(token: string): Promise<void> {
-        await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+        await Storage.setItem(REFRESH_TOKEN_KEY, token);
     },
 
     async clearTokens(): Promise<void> {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-        await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-        await SecureStore.deleteItemAsync(USER_KEY);
+        await Storage.removeItem(TOKEN_KEY);
+        await Storage.removeItem(REFRESH_TOKEN_KEY);
+        await Storage.removeItem(USER_KEY);
     },
 
     async setUser(user: object): Promise<void> {
-        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+        await Storage.setItem(USER_KEY, JSON.stringify(user));
     },
 
     async getUser(): Promise<object | null> {
         try {
-            const userStr = await SecureStore.getItemAsync(USER_KEY);
+            const userStr = await Storage.getItem(USER_KEY);
             return userStr ? JSON.parse(userStr) : null;
         } catch {
             return null;

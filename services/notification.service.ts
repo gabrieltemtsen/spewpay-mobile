@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
@@ -44,13 +45,21 @@ export const notificationService = {
             }
 
             try {
-                const projectId = 'your-project-id'; // Should come from config
+                // Get projectId from Expo config
+                const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+
+                if (!projectId) {
+                    console.warn('No EAS projectId found, skipping push token registration');
+                    return;
+                }
+
                 token = (await Notifications.getExpoPushTokenAsync({
                     projectId,
                 })).data;
                 console.log('Push token:', token);
             } catch (e) {
                 console.error('Error fetching push token', e);
+                // Don't throw - push notifications are optional
             }
         } else {
             console.log('Must use physical device for Push Notifications');

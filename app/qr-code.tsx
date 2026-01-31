@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { QRCodeGenerator } from '@/components/QRCodeGenerator';
 import { QRCodeScanner } from '@/components/QRCodeScanner';
 import { useToast } from '@/components/Toast';
-import { borderRadius, colors, spacing, typography } from '@/constants/spewpay-theme';
+import { borderRadius, colors, shadows, spacing, typography } from '@/constants/spewpay-theme';
 import { useAuth } from '@/contexts';
 
 export default function QRCodeScreen() {

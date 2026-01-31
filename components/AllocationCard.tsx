@@ -34,7 +34,7 @@ export function AllocationCard({ allocation, onPress }: AllocationCardProps) {
         if (onPress) {
             onPress();
         } else {
-            router.push(`/allocation/${allocation.id}`);
+            router.push(`/allocation/${allocation.id}` as any);
         }
     };
 

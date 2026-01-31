@@ -33,6 +33,7 @@ export default function HistoryScreen() {
     const { transactions, isLoading, isRefreshing, hasMore, refresh, loadMore } = useTransactions();
     const [filter, setFilter] = useState<FilterType>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
     const filteredTransactions = useMemo(() => {
         let result = transactions;
@@ -105,10 +106,6 @@ export default function HistoryScreen() {
             </View>
         );
     }
-
-    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-
-    // ... existing useMemo ...
 
     return (
         <View style={styles.container}>

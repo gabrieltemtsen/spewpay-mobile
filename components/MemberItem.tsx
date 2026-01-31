@@ -26,14 +26,22 @@ const getRoleBadgeColor = (role: OrgRole) => {
 };
 
 export function MemberItem({ member, currentUserId, onPress, onRoleChange, onRemove }: MemberItemProps) {
-    const roleColors = getRoleBadgeColor(member.role);
+    // Safety check for missing member data
+    if (!member) {
+        return null;
+    }
+
+    const roleColors = getRoleBadgeColor(member.role || 'MEMBER');
     const isCurrentUser = member.userId === currentUserId;
-    const initials = member.user.displayName
+    const displayName = member.user?.displayName || member.user?.email || 'Unknown User';
+    const initials = displayName
         .split(' ')
+        .filter(Boolean)
         .map((n) => n.charAt(0))
         .join('')
         .substring(0, 2)
-        .toUpperCase();
+        .toUpperCase() || '??';
+
 
     return (
         <TouchableOpacity
@@ -47,10 +55,10 @@ export function MemberItem({ member, currentUserId, onPress, onRoleChange, onRem
 
             <View style={styles.info}>
                 <View style={styles.nameRow}>
-                    <Text style={styles.name}>{member.user.displayName}</Text>
+                    <Text style={styles.name}>{displayName}</Text>
                     {isCurrentUser && <Text style={styles.youBadge}>You</Text>}
                 </View>
-                <Text style={styles.email}>{member.user.email}</Text>
+                <Text style={styles.email}>{member.user?.email || ''}</Text>
             </View>
 
             <View style={[styles.roleBadge, { backgroundColor: roleColors.bg }]}>

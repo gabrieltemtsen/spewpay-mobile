@@ -31,10 +31,12 @@ export const orgService = {
      * GET /orgs/my?userId=xxx
      */
     async getMyOrgs(userId: string): Promise<Organization[]> {
-        const response = await apiClient.get<Organization[]>('/orgs/my', {
+        const response = await apiClient.get<{ data: Organization[] } | Organization[]>('/orgs/my', {
             params: { userId },
         });
-        return response.data;
+        // Handle both wrapped { data: [] } and unwrapped [] responses
+        const data = response.data;
+        return Array.isArray(data) ? data : (data as any).data ?? [];
     },
 
     /**
@@ -42,8 +44,9 @@ export const orgService = {
      * GET /orgs/{orgId}
      */
     async getOrg(orgId: string): Promise<Organization> {
-        const response = await apiClient.get<Organization>(`/orgs/${orgId}`);
-        return response.data;
+        const response = await apiClient.get<{ data: Organization } | Organization>(`/orgs/${orgId}`);
+        const data = response.data;
+        return (data as any).data ?? data;
     },
 
     /**
@@ -55,10 +58,11 @@ export const orgService = {
         userId: string,
         data: { name?: string; metadata?: object }
     ): Promise<Organization> {
-        const response = await apiClient.patch<Organization>(`/orgs/${orgId}`, data, {
+        const response = await apiClient.patch<{ data: Organization } | Organization>(`/orgs/${orgId}`, data, {
             params: { userId },
         });
-        return response.data;
+        const result = response.data;
+        return (result as any).data ?? result;
     },
 
     // ============ INVITES ============
@@ -72,10 +76,11 @@ export const orgService = {
         userId: string,
         data: { email?: string; phone?: string; userId?: string; role: OrgRole; message?: string }
     ): Promise<OrgInvite> {
-        const response = await apiClient.post<OrgInvite>(`/orgs/${orgId}/invites`, data, {
+        const response = await apiClient.post<{ data: OrgInvite } | OrgInvite>(`/orgs/${orgId}/invites`, data, {
             params: { userId },
         });
-        return response.data;
+        const result = response.data;
+        return (result as any).data ?? result;
     },
 
     /**
@@ -83,10 +88,11 @@ export const orgService = {
      * GET /orgs/{orgId}/invites?userId=xxx
      */
     async getOrgInvites(orgId: string, userId: string): Promise<OrgInvite[]> {
-        const response = await apiClient.get<OrgInvite[]>(`/orgs/${orgId}/invites`, {
+        const response = await apiClient.get<{ data: OrgInvite[] } | OrgInvite[]>(`/orgs/${orgId}/invites`, {
             params: { userId },
         });
-        return response.data;
+        const data = response.data;
+        return Array.isArray(data) ? data : (data as any).data ?? [];
     },
 
     /**
@@ -94,10 +100,11 @@ export const orgService = {
      * GET /orgs/invites/my?userId=xxx
      */
     async getMyInvites(userId: string, email?: string): Promise<OrgInvite[]> {
-        const response = await apiClient.get<OrgInvite[]>('/orgs/invites/my', {
+        const response = await apiClient.get<{ data: OrgInvite[] } | OrgInvite[]>('/orgs/invites/my', {
             params: { userId, email },
         });
-        return response.data;
+        const data = response.data;
+        return Array.isArray(data) ? data : (data as any).data ?? [];
     },
 
     /**

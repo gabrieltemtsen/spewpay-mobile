@@ -169,25 +169,25 @@ export default function DashboardScreen() {
                   <Text style={styles.quickActionLabel}>Send</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.quickActionItem}>
+                <TouchableOpacity style={styles.quickActionItem} onPress={() => router.push('/qr-code')}>
                   <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(0, 230, 153, 0.15)' }]}>
                     <Ionicons name="qr-code" size={24} color="#00E699" />
                   </View>
                   <Text style={styles.quickActionLabel}>Receive</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.quickActionItem} onPress={handleAddMoney}>
+                <TouchableOpacity style={styles.quickActionItem} onPress={() => router.push('/bills')}>
                   <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
                     <Ionicons name="card" size={24} color="#F59E0B" />
                   </View>
                   <Text style={styles.quickActionLabel}>Pay Bills</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.quickActionItem}>
+                <TouchableOpacity style={styles.quickActionItem} onPress={() => router.push('/insights')}>
                   <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-                    <Ionicons name="grid" size={24} color="#8B5CF6" />
+                    <Ionicons name="stats-chart" size={24} color="#8B5CF6" />
                   </View>
-                  <Text style={styles.quickActionLabel}>More</Text>
+                  <Text style={styles.quickActionLabel}>Insights</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>

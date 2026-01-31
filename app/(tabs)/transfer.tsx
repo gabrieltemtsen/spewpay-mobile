@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -29,6 +29,7 @@ const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 export default function TransferScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const { user } = useAuth();
     const { showToast } = useToast();
     const [recipient, setRecipient] = useState('');
@@ -37,6 +38,13 @@ export default function TransferScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
+
+    useEffect(() => {
+        if (params.recipient) {
+            setRecipient(Array.isArray(params.recipient) ? params.recipient[0] : params.recipient);
+        }
+    }, [params.recipient]);
+
 
     const handleQuickAmount = async (value: number) => {
         if (Platform.OS !== 'web') {

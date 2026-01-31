@@ -42,7 +42,7 @@ export function OrgCard({ org, index = 0 }: OrgCardProps) {
         if (Platform.OS !== 'web') {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
-        router.push(`/org/${org.id}`);
+        router.push(`/org/${org.id}` as any);
     };
 
     return (
